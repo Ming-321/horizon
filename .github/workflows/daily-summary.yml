@@ -36,12 +36,15 @@ jobs:
           LWN_KEY: ${{ secrets.LWN_KEY }}
         run: uv run horizon --hours 48
 
+      - name: Set current date as environment variable
+        run: echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
           keep_files: true  # Keep existing summaries on gh-pages branch
-          commit_message: "📝 Daily Summary: $(date +'%Y-%m-%d')"
+          commit_message: "📝 Daily Summary: ${{ env.DATE }}"
           publish_branch: gh-pages
           enable_jekyll: true
