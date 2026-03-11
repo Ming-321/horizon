@@ -80,10 +80,32 @@ class RSSScraper(BaseScraper):
             # Parse feed
             feed = feedparser.parse(response.text)
 
+            channel_pub_date = None
+            for field in ("published_parsed", "updated_parsed"):
+                try:
+                    parsed = feed.feed.get(field)
+                    if parsed:
+                        channel_pub_date = datetime.fromtimestamp(
+                            calendar.timegm(parsed), tz=timezone.utc
+                        )
+                        break
+                except (TypeError, ValueError, OverflowError):
+                    logger.debug("Bad channel date in field %s for %s", field, source.name)
+                    continue
+
             for entry in feed.entries:
-                # Parse published date
                 published_at = self._parse_date(entry)
-                if not published_at or published_at < since:
+                if not published_at:
+                    if channel_pub_date:
+                        published_at = channel_pub_date
+                    else:
+                        published_at = datetime.now(timezone.utc)
+                        logger.warning(
+                            "No date for entry '%s' in %s, using current time — "
+                            "may include stale items",
+                            entry.get("title", "?"), source.name,
+                        )
+                if published_at < since:
                     continue
 
                 # Generate unique ID from feed URL and entry ID

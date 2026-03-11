@@ -134,7 +134,8 @@ class OpenAIClient(AIClient):
             ],
             temperature=temperature,
             max_tokens=max_tokens,
-            response_format={"type": "json_object"}
+            response_format={"type": "json_object"},
+            extra_body={"enable_thinking": False}
         )
 
         return response.choices[0].message.content

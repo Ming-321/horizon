@@ -2,9 +2,9 @@
   "version": "1.0",
   "ai": {
     "provider": "openai",
-    "model": "deepseek-chat",
-    "base_url": "https://api.deepseek.com",
-    "api_key_env": "OPENAI_API_KEY",
+    "model": "qwen3.5-plus",
+    "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    "api_key_env": "DASHSCOPE_API_KEY",
     "temperature": 0.3,
     "max_tokens": 8192,
     "languages": [
@@ -59,12 +59,54 @@
       {
         "name": "LWN.net",
         "url": "https://lwn.net/headlines/full_text?key=${LWN_KEY}",
-        "enabled": true,
+        "enabled": false,
         "category": "linux-kernel"
+      },
+      {
+        "name": "MemSearch Updates",
+        "url": "https://github.com/zilliztech/memsearch/commits.atom",
+        "enabled": true,
+        "category": "github-updates"
+      },
+      {
+        "name": "Superpowers Updates",
+        "url": "https://github.com/obra/superpowers/commits.atom",
+        "enabled": true,
+        "category": "github-updates"
+      },
+      {
+        "name": "量子位",
+        "url": "https://www.qbitai.com/feed",
+        "enabled": true,
+        "category": "ai-news-zh"
+      },
+      {
+        "name": "Ars Technica",
+        "url": "https://feeds.arstechnica.com/arstechnica/index",
+        "enabled": true,
+        "category": "tech-analysis"
+      },
+      {
+        "name": "Hugging Face Blog",
+        "url": "https://huggingface.co/blog/feed.xml",
+        "enabled": true,
+        "category": "ai-open-source"
+      },
+      {
+        "name": "r/MachineLearning",
+        "url": "https://old.reddit.com/r/MachineLearning/hot/.rss?limit=15",
+        "enabled": true,
+        "category": "reddit-ml"
+      },
+      {
+        "name": "r/LocalLLaMA",
+        "url": "https://old.reddit.com/r/LocalLLaMA/hot/.rss?limit=15",
+        "enabled": true,
+        "category": "reddit-llm"
       }
     ],
     "reddit": {
-      "enabled": true,
+      "enabled": false,
       "subreddits": [
         {
           "subreddit": "MachineLearning",
