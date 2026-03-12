@@ -2,6 +2,7 @@
 
 import os
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from typing import Optional
 
 from anthropic import AsyncAnthropic
@@ -10,6 +11,43 @@ from google import genai
 from google.genai import types
 
 from ..models import AIConfig, AIProvider
+
+
+@dataclass
+class TokenUsage:
+    """Token counts from a single AI completion."""
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+
+
+@dataclass
+class CompletionResult:
+    """Result of an AI completion call."""
+    text: str
+    usage: TokenUsage = field(default_factory=TokenUsage)
+
+
+class TokenUsageTracker:
+    """Accumulates token usage across multiple AI calls."""
+
+    def __init__(self):
+        self.total_prompt_tokens: int = 0
+        self.total_completion_tokens: int = 0
+        self.call_count: int = 0
+
+    def track(self, usage: TokenUsage) -> None:
+        self.total_prompt_tokens += usage.prompt_tokens
+        self.total_completion_tokens += usage.completion_tokens
+        self.call_count += 1
+
+    def summary(self) -> str:
+        total = self.total_prompt_tokens + self.total_completion_tokens
+        return (
+            f"Token usage: {total:,} total "
+            f"({self.total_prompt_tokens:,} prompt + "
+            f"{self.total_completion_tokens:,} completion) "
+            f"across {self.call_count} calls"
+        )
 
 
 class AIClient(ABC):
@@ -22,7 +60,7 @@ class AIClient(ABC):
         user: str,
         temperature: float = 0.3,
         max_tokens: int = 4096
-    ) -> str:
+    ) -> CompletionResult:
         """Generate completion from AI model.
 
         Args:
@@ -32,7 +70,7 @@ class AIClient(ABC):
             max_tokens: Maximum tokens to generate
 
         Returns:
-            str: Generated completion text
+            CompletionResult: Generated text and token usage
         """
         pass
 
@@ -64,18 +102,7 @@ class AnthropicClient(AIClient):
         user: str,
         temperature: float = 0.3,
         max_tokens: int = 4096
-    ) -> str:
-        """Generate completion using Claude.
-
-        Args:
-            system: System prompt
-            user: User prompt
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens to generate
-
-        Returns:
-            str: Generated text
-        """
+    ) -> CompletionResult:
         message = await self.client.messages.create(
             model=self.model,
             max_tokens=max_tokens,
@@ -84,7 +111,11 @@ class AnthropicClient(AIClient):
             messages=[{"role": "user", "content": user}]
         )
 
-        return message.content[0].text
+        usage = TokenUsage(
+            prompt_tokens=getattr(message.usage, "input_tokens", 0),
+            completion_tokens=getattr(message.usage, "output_tokens", 0),
+        )
+        return CompletionResult(text=message.content[0].text, usage=usage)
 
 
 class OpenAIClient(AIClient):
@@ -114,18 +145,7 @@ class OpenAIClient(AIClient):
         user: str,
         temperature: float = 0.3,
         max_tokens: int = 4096
-    ) -> str:
-        """Generate completion using OpenAI.
-
-        Args:
-            system: System prompt
-            user: User prompt
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens to generate
-
-        Returns:
-            str: Generated text
-        """
+    ) -> CompletionResult:
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -138,7 +158,12 @@ class OpenAIClient(AIClient):
             extra_body={"enable_thinking": False}
         )
 
-        return response.choices[0].message.content
+        usage_obj = response.usage
+        usage = TokenUsage(
+            prompt_tokens=getattr(usage_obj, "prompt_tokens", 0) if usage_obj else 0,
+            completion_tokens=getattr(usage_obj, "completion_tokens", 0) if usage_obj else 0,
+        )
+        return CompletionResult(text=response.choices[0].message.content, usage=usage)
 
 
 class GeminiClient(AIClient):
@@ -165,18 +190,7 @@ class GeminiClient(AIClient):
         user: str,
         temperature: float = 0.3,
         max_tokens: int = 4096
-    ) -> str:
-        """Generate completion using Gemini.
-
-        Args:
-            system: System prompt
-            user: User prompt
-            temperature: Sampling temperature
-            max_tokens: Maximum tokens to generate
-
-        Returns:
-            str: Generated text
-        """
+    ) -> CompletionResult:
         response = await self.client.aio.models.generate_content(
             model=self.model,
             contents=user,
@@ -188,7 +202,12 @@ class GeminiClient(AIClient):
             )
         )
 
-        return response.text
+        um = getattr(response, "usage_metadata", None)
+        usage = TokenUsage(
+            prompt_tokens=getattr(um, "prompt_token_count", 0) if um else 0,
+            completion_tokens=getattr(um, "candidates_token_count", 0) if um else 0,
+        )
+        return CompletionResult(text=response.text, usage=usage)
 
 
 def create_ai_client(config: AIConfig) -> AIClient:

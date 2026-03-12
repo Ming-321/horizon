@@ -21,6 +21,7 @@ class HackerNewsScraper(BaseScraper):
 
     def __init__(self, config: HackerNewsConfig, http_client: httpx.AsyncClient):
         super().__init__(config.model_dump(), http_client)
+        self.hn_config = config
         self.base_url = "https://hacker-news.firebaseio.com/v0"
 
     async def fetch(self, since: datetime) -> List[ContentItem]:
@@ -132,6 +133,7 @@ class HackerNewsScraper(BaseScraper):
             content=content,
             author=author,
             published_at=published_at,
+            category=self.hn_config.category,
             metadata={
                 "score": story.get("score", 0),
                 "descendants": story.get("descendants", 0),

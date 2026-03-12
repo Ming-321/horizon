@@ -2,11 +2,11 @@
 
 import json
 import re
-from typing import List, Optional
+from typing import Callable, List, Optional, Tuple
 from tenacity import retry, stop_after_attempt, wait_exponential
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, MofNCompleteColumn
 
-from .client import AIClient
+from .client import AIClient, TokenUsage, TokenUsageTracker
 from .prompts import CONTENT_ANALYSIS_SYSTEM, CONTENT_ANALYSIS_USER
 from ..models import ContentItem
 
@@ -75,9 +75,16 @@ class ContentAnalyzer:
     async def analyze_batch(
         self,
         items: List[ContentItem],
-        batch_size: int = 10
-    ) -> List[ContentItem]:
-        analyzed_items = []
+        batch_size: int = 10,
+        prompt_resolver: Optional[Callable[[ContentItem], str]] = None,
+    ) -> Tuple[List[ContentItem], TokenUsage]:
+        """Analyze items and return (analyzed_items, aggregated_token_usage).
+
+        prompt_resolver: given a ContentItem, returns the system prompt to use.
+        Falls back to CONTENT_ANALYSIS_SYSTEM when None.
+        """
+        analyzed_items: List[ContentItem] = []
+        tracker = TokenUsageTracker()
 
         with Progress(
             SpinnerColumn(),
@@ -91,8 +98,10 @@ class ContentAnalyzer:
             for i in range(0, len(items), batch_size):
                 batch = items[i:i + batch_size]
                 for item in batch:
+                    system_prompt = prompt_resolver(item) if prompt_resolver else None
                     try:
-                        await self._analyze_item(item)
+                        usage = await self._analyze_item(item, system_prompt=system_prompt)
+                        tracker.track(usage)
                         analyzed_items.append(item)
                     except Exception as e:
                         print(f"Error analyzing item {item.id}: {e}")
@@ -102,19 +111,28 @@ class ContentAnalyzer:
                         analyzed_items.append(item)
                     progress.advance(task)
 
-        return analyzed_items
+        total_usage = TokenUsage(
+            prompt_tokens=tracker.total_prompt_tokens,
+            completion_tokens=tracker.total_completion_tokens,
+        )
+        return analyzed_items, total_usage
 
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(min=2, max=10)
     )
-    async def _analyze_item(self, item: ContentItem) -> None:
+    async def _analyze_item(self, item: ContentItem, system_prompt: str = None) -> TokenUsage:
         """Analyze a single content item.
 
         Args:
             item: Content item to analyze (modified in-place)
+            system_prompt: Override system prompt; defaults to CONTENT_ANALYSIS_SYSTEM
+
+        Returns:
+            TokenUsage from this single completion call.
         """
-        # Prepare content section
+        system_prompt = system_prompt or CONTENT_ANALYSIS_SYSTEM
+
         content_section = ""
         if item.content:
             # Split off comments if present
@@ -168,25 +186,23 @@ class ContentAnalyzer:
             discussion_section=discussion_section
         )
 
-        # Get AI completion
-        response = await self.client.complete(
-            system=CONTENT_ANALYSIS_SYSTEM,
+        completion = await self.client.complete(
+            system=system_prompt,
             user=user_prompt,
             temperature=0.3
         )
 
-        # Parse JSON response with robust fallback
-        result = self._parse_json_response(response)
+        result = self._parse_json_response(completion.text)
         if result is None:
             print(f"Warning: could not parse analysis response for {item.id}, using defaults")
             item.ai_score = 0.0
             item.ai_reason = "Analysis response parse failed"
             item.ai_summary = item.title
             item.ai_tags = []
-            return
+            return completion.usage
 
-        # Update item with analysis results
         item.ai_score = float(result.get("score", 0))
         item.ai_reason = result.get("reason", "")
         item.ai_summary = result.get("summary", item.title)
         item.ai_tags = result.get("tags", [])
+        return completion.usage

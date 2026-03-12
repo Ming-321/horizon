@@ -77,5 +77,26 @@
   "filtering": {
     "ai_score_threshold": 6.0,
     "time_window_hours": 24
-  }
+  },
+  "groups": [
+    {
+      "id": "headlines",
+      "name": "Headlines",
+      "default": true,
+      "categories": ["ai-tools", "linux", "hackernews", "reddit", "telegram"],
+      "scoring": {
+        "enabled": true,
+        "prompt_file": null,
+        "threshold": 6.0
+      }
+    },
+    {
+      "id": "watched",
+      "name": "Watched",
+      "categories": ["github-updates"],
+      "scoring": {
+        "enabled": false
+      }
+    }
+  ]
 }

@@ -14,7 +14,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, MofNCompleteColumn
 from ddgs import DDGS
 
-from .client import AIClient
+from .client import AIClient, TokenUsage, TokenUsageTracker
 from .prompts import (
     CONCEPT_EXTRACTION_SYSTEM, CONCEPT_EXTRACTION_USER,
     CONTENT_ENRICHMENT_SYSTEM, CONTENT_ENRICHMENT_USER,
@@ -28,12 +28,13 @@ class ContentEnricher:
     def __init__(self, ai_client: AIClient):
         self.client = ai_client
 
-    async def enrich_batch(self, items: List[ContentItem]) -> None:
+    async def enrich_batch(self, items: List[ContentItem]) -> TokenUsage:
         """Enrich items in-place with background knowledge.
 
-        Args:
-            items: Content items to enrich (modified in-place)
+        Returns aggregated TokenUsage for all AI calls during enrichment.
         """
+        tracker = TokenUsageTracker()
+
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -45,10 +46,17 @@ class ContentEnricher:
 
             for item in items:
                 try:
-                    await self._enrich_item(item)
+                    usage = await self._enrich_item(item)
+                    if usage:
+                        tracker.track(usage)
                 except Exception as e:
                     print(f"Error enriching item {item.id}: {e}")
                 progress.advance(task)
+
+        return TokenUsage(
+            prompt_tokens=tracker.total_prompt_tokens,
+            completion_tokens=tracker.total_completion_tokens,
+        )
 
     async def _web_search(self, query: str, max_results: int = 3) -> list:
         """Search the web for context via DuckDuckGo.
@@ -129,15 +137,10 @@ class ContentEnricher:
 
         return None
 
-    async def _extract_concepts(self, item: ContentItem, content_text: str) -> List[str]:
+    async def _extract_concepts(self, item: ContentItem, content_text: str) -> tuple:
         """Ask AI to identify concepts that need explanation.
 
-        Args:
-            item: Content item
-            content_text: Extracted content text
-
-        Returns:
-            List of search queries for concepts that need explanation
+        Returns (queries, usage) tuple.
         """
         user_prompt = CONCEPT_EXTRACTION_USER.format(
             title=item.title,
@@ -147,34 +150,25 @@ class ContentEnricher:
         )
 
         try:
-            response = await self.client.complete(
+            completion = await self.client.complete(
                 system=CONCEPT_EXTRACTION_SYSTEM,
                 user=user_prompt,
                 temperature=0.3,
             )
-            result = self._parse_json_response(response)
+            result = self._parse_json_response(completion.text)
             if result is None:
-                return []
+                return [], completion.usage
             queries = result.get("queries", [])
-            return queries[:3]
+            return queries[:3], completion.usage
         except Exception:
-            return []
+            return [], TokenUsage()
 
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(min=2, max=10)
     )
-    async def _enrich_item(self, item: ContentItem) -> None:
-        """Enrich a single item with background knowledge.
-
-        Steps:
-        1. Ask AI which concepts in the news need explanation
-        2. Search the web for those concepts
-        3. Ask AI to generate background based on search results
-
-        Args:
-            item: Content item to enrich (modified in-place via metadata)
-        """
+    async def _enrich_item(self, item: ContentItem) -> TokenUsage:
+        """Enrich a single item with background knowledge. Returns combined TokenUsage."""
         # Extract content text and comments separately
         content_text = ""
         comments_text = ""
@@ -186,8 +180,13 @@ class ContentEnricher:
             else:
                 content_text = item.content[:4000]
 
-        # Step 1: AI identifies concepts to explain
-        queries = await self._extract_concepts(item, content_text)
+        combined_usage = TokenUsage()
+
+        queries, concept_usage = await self._extract_concepts(item, content_text)
+        combined_usage = TokenUsage(
+            prompt_tokens=combined_usage.prompt_tokens + concept_usage.prompt_tokens,
+            completion_tokens=combined_usage.completion_tokens + concept_usage.completion_tokens,
+        )
 
         # Step 2: Search web for each concept
         all_results = []
@@ -216,19 +215,21 @@ class ContentEnricher:
             web_context=web_context or "No web search results available.",
         )
 
-        response = await self.client.complete(
+        completion = await self.client.complete(
             system=CONTENT_ENRICHMENT_SYSTEM,
             user=user_prompt,
             temperature=0.4,
         )
 
-        # Parse JSON response with robust fallback
-        result = self._parse_json_response(response)
+        combined_usage = TokenUsage(
+            prompt_tokens=combined_usage.prompt_tokens + completion.usage.prompt_tokens,
+            completion_tokens=combined_usage.completion_tokens + completion.usage.completion_tokens,
+        )
+
+        result = self._parse_json_response(completion.text)
         if result is None:
-            # Gracefully degrade: skip enrichment instead of raising
-            # (raising would trigger retries that won't help with a parse error)
             print(f"Warning: could not parse enrichment response for {item.id}, skipping enrichment")
-            return
+            return combined_usage
 
         # Combine structured sub-fields into per-language detailed_summary
         for lang in ("en", "zh"):
@@ -259,7 +260,8 @@ class ContentEnricher:
             if valid:
                 item.metadata["sources"] = valid
 
-        # Backward-compatible fallback fields (English as default)
         item.metadata["detailed_summary"] = item.metadata.get("detailed_summary_en", "")
         item.metadata["background"] = item.metadata.get("background_en", "")
         item.metadata["community_discussion"] = item.metadata.get("community_discussion_en", "")
+
+        return combined_usage

@@ -1,5 +1,37 @@
 """AI prompts for content analysis and summarization."""
 
+import logging
+from pathlib import Path
+from typing import Optional
+
+logger = logging.getLogger(__name__)
+
+_PROMPTS_DIR = Path(__file__).resolve().parents[2] / "data" / "prompts"
+
+
+def load_prompt(filename: str) -> Optional[str]:
+    """Load a prompt from data/prompts/. Returns None if the file doesn't exist."""
+    path = _PROMPTS_DIR / filename
+    try:
+        return path.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        logger.warning("Prompt file not found: %s, falling back to default", path)
+        return None
+
+
+def get_scoring_prompt(
+    source_prompt_file: Optional[str],
+    group_prompt_file: Optional[str],
+) -> str:
+    """Resolve the scoring system prompt with Source Entry -> Group -> Global Default fallback."""
+    for f in (source_prompt_file, group_prompt_file):
+        if f:
+            text = load_prompt(f)
+            if text is not None:
+                return text
+    return CONTENT_ANALYSIS_SYSTEM
+
+
 CONTENT_ANALYSIS_SYSTEM = """You are an expert content curator helping filter important technical and academic information.
 
 Score content on a 0-10 scale based on importance and relevance:

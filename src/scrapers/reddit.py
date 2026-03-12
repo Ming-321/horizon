@@ -61,7 +61,7 @@ class RedditScraper(BaseScraper):
         posts = [child["data"] for child in data.get("data", {}).get("children", [])
                  if child.get("kind") == "t3"]
         return await self._process_posts(
-            posts, since, "subreddit", cfg.subreddit, cfg.min_score
+            posts, since, "subreddit", cfg.subreddit, cfg.min_score, cfg.category
         )
 
     async def _fetch_user(self, cfg: RedditUserConfig, since: datetime) -> List[ContentItem]:
@@ -74,7 +74,7 @@ class RedditScraper(BaseScraper):
         posts = [child["data"] for child in data.get("data", {}).get("children", [])
                  if child.get("kind") == "t3"]
         return await self._process_posts(
-            posts, since, "user", cfg.username, min_score=0
+            posts, since, "user", cfg.username, min_score=0, category=cfg.category
         )
 
     async def _process_posts(
@@ -84,6 +84,7 @@ class RedditScraper(BaseScraper):
         subtype: str,
         source_name: str,
         min_score: int,
+        category: str = "reddit",
     ) -> List[ContentItem]:
         valid_posts = []
         comment_tasks = []
@@ -112,7 +113,7 @@ class RedditScraper(BaseScraper):
         for post, comments in zip(valid_posts, all_comments):
             if isinstance(comments, Exception):
                 comments = []
-            item = self._parse_post(post, comments, subtype)
+            item = self._parse_post(post, comments, subtype, category)
             if item:
                 items.append(item)
         return items
@@ -141,7 +142,7 @@ class RedditScraper(BaseScraper):
         comments.sort(key=lambda c: c.get("score", 0), reverse=True)
         return comments[:fetch_limit]
 
-    def _parse_post(self, post: dict, comments: List[dict], subtype: str) -> Optional[ContentItem]:
+    def _parse_post(self, post: dict, comments: List[dict], subtype: str, category: str = "reddit") -> Optional[ContentItem]:
         post_id = post["id"]
         title = post.get("title", "")
         is_self = post.get("is_self", False)
@@ -183,6 +184,7 @@ class RedditScraper(BaseScraper):
             content=content,
             author=author,
             published_at=created,
+            category=category,
             metadata={
                 "score": post.get("score", 0),
                 "upvote_ratio": post.get("upvote_ratio"),

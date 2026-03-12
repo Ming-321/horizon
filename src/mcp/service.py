@@ -276,7 +276,7 @@ class HorizonPipelineService:
 
         ai_client = ctx.runtime.create_ai_client(ctx.config.ai)
         analyzer = ctx.runtime.ContentAnalyzer(ai_client)
-        scored_items = await analyzer.analyze_batch(items)
+        scored_items, _usage = await analyzer.analyze_batch(items)
 
         self.run_store.save_items(run_id, "scored", items_to_dicts(scored_items))
         score_threshold = ctx.config.filtering.ai_score_threshold
@@ -412,8 +412,9 @@ class HorizonPipelineService:
         date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         summarizer = ctx.runtime.DailySummarizer()
+        grouped_items = {"Daily": items}
         summary = await summarizer.generate_summary(
-            items,
+            grouped_items,
             date_str,
             total_fetched,
             language=language,

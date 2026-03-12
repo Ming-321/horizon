@@ -71,21 +71,21 @@ class TelegramScraper(BaseScraper):
 
         items = []
         for msg in messages[-cfg.fetch_limit:]:
-            item = self._parse_message(msg, cfg.channel, since)
+            item = self._parse_message(msg, cfg, since)
             if item:
                 items.append(item)
         return items
 
     def _parse_message(
-        self, msg_el, channel: str, since: datetime
+        self, msg_el, cfg: TelegramChannelConfig, since: datetime
     ) -> Optional[ContentItem]:
-        # Extract message ID
+        channel = cfg.channel
+
         data_post = msg_el.get("data-post", "")
         msg_id = data_post.split("/")[-1] if "/" in data_post else data_post
         if not msg_id:
             return None
 
-        # Extract timestamp
         time_el = msg_el.select_one("time[datetime]")
         if not time_el:
             return None
@@ -97,12 +97,10 @@ class TelegramScraper(BaseScraper):
         if published_at < since:
             return None
 
-        # Extract message text
         text_el = msg_el.select_one("div.tgme_widget_message_text")
         if not text_el:
             return None
 
-        # Convert <br> to newlines, then strip tags
         for br in text_el.find_all("br"):
             br.replace_with("\n")
         raw_text = text_el.get_text(separator="")
@@ -111,10 +109,8 @@ class TelegramScraper(BaseScraper):
         if not text:
             return None
 
-        # Generate title from first paragraph
         title = self._make_title(text)
 
-        # Find first external link as canonical URL; fallback to message URL
         msg_url = f"https://t.me/{channel}/{msg_id}"
         canonical_url = msg_url
         for a in text_el.find_all("a", href=True):
@@ -131,6 +127,7 @@ class TelegramScraper(BaseScraper):
             content=text,
             author=channel,
             published_at=published_at,
+            category=cfg.category,
             metadata={"msg_url": msg_url, "channel": channel},
         )
 

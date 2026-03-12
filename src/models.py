@@ -27,6 +27,7 @@ class ContentItem(BaseModel):
     published_at: datetime
     fetched_at: datetime = Field(default_factory=datetime.utcnow)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    category: Optional[str] = None
 
     # AI analysis results
     ai_score: Optional[float] = None  # 0-10 importance score
@@ -63,6 +64,8 @@ class GitHubSourceConfig(BaseModel):
     owner: Optional[str] = None
     repo: Optional[str] = None
     enabled: bool = True
+    category: Optional[str] = None
+    scoring_prompt_file: Optional[str] = None
 
 
 class HackerNewsConfig(BaseModel):
@@ -71,6 +74,8 @@ class HackerNewsConfig(BaseModel):
     enabled: bool = True
     fetch_top_stories: int = 30
     min_score: int = 100
+    category: str = "hackernews"
+    scoring_prompt_file: Optional[str] = None
 
 
 class RSSSourceConfig(BaseModel):
@@ -80,6 +85,7 @@ class RSSSourceConfig(BaseModel):
     url: HttpUrl
     enabled: bool = True
     category: Optional[str] = None
+    scoring_prompt_file: Optional[str] = None
 
 
 class RedditSubredditConfig(BaseModel):
@@ -90,6 +96,8 @@ class RedditSubredditConfig(BaseModel):
     time_filter: str = "day"    # hour, day, week, month, year, all (only for top/controversial)
     fetch_limit: int = 25
     min_score: int = 10
+    category: str = "reddit"
+    scoring_prompt_file: Optional[str] = None
 
 
 class RedditUserConfig(BaseModel):
@@ -98,6 +106,8 @@ class RedditUserConfig(BaseModel):
     enabled: bool = True
     sort: str = "new"
     fetch_limit: int = 10
+    category: str = "reddit"
+    scoring_prompt_file: Optional[str] = None
 
 
 class RedditConfig(BaseModel):
@@ -113,6 +123,8 @@ class TelegramChannelConfig(BaseModel):
     channel: str            # channel username, e.g. "zaihuapd"
     enabled: bool = True
     fetch_limit: int = 20
+    category: str = "telegram"
+    scoring_prompt_file: Optional[str] = None
 
 
 class TelegramConfig(BaseModel):
@@ -152,6 +164,28 @@ class FilteringConfig(BaseModel):
     time_window_hours: int = 24
 
 
+class ScoringConfig(BaseModel):
+    """Per-group scoring configuration."""
+    enabled: bool = True
+    prompt_file: Optional[str] = None
+    threshold: float = 7.0
+
+
+class SummaryGroupConfig(BaseModel):
+    """Per-group summary configuration (future extension)."""
+    prompt_file: Optional[str] = None
+
+
+class GroupConfig(BaseModel):
+    """Content group (newspaper section) configuration."""
+    id: str
+    name: str
+    default: bool = False
+    categories: List[str] = Field(default_factory=list)
+    scoring: ScoringConfig = Field(default_factory=ScoringConfig)
+    summary: SummaryGroupConfig = Field(default_factory=SummaryGroupConfig)
+
+
 class Config(BaseModel):
     """Main configuration model."""
 
@@ -160,3 +194,4 @@ class Config(BaseModel):
     sources: SourcesConfig
     filtering: FilteringConfig
     email: Optional[EmailConfig] = None
+    groups: List[GroupConfig] = Field(default_factory=list)

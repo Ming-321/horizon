@@ -142,5 +142,45 @@
   "filtering": {
     "ai_score_threshold": 7.0,
     "time_window_hours": 24
-  }
+  },
+  "groups": [
+    {
+      "id": "headlines",
+      "name": "头条速递",
+      "default": true,
+      "categories": ["tech-analysis", "hackernews", "ai-tools", "ai-news-zh", "ai-open-source", "reddit-ml", "reddit-llm", "reddit", "telegram", "github-activity", "linux-kernel"],
+      "scoring": {
+        "enabled": true,
+        "prompt_file": null,
+        "threshold": 7.0
+      },
+      "summary": {
+        "prompt_file": null
+      }
+    },
+    {
+      "id": "watched",
+      "name": "关注动态",
+      "categories": ["github-updates"],
+      "scoring": {
+        "enabled": false
+      },
+      "summary": {
+        "prompt_file": null
+      }
+    },
+    {
+      "id": "github_trending",
+      "name": "GitHub 热榜",
+      "categories": ["github-trending"],
+      "scoring": {
+        "enabled": true,
+        "prompt_file": null,
+        "threshold": 7.0
+      },
+      "summary": {
+        "prompt_file": null
+      }
+    }
+  ]
 }
