@@ -16,34 +16,133 @@
   --badge-high: #b22222;
   --badge-mid: #c77d1a;
   --badge-low: #5b7a3e;
-  --sidebar-w: 300px;
-  --card-min-w: 320px;
+  --sidebar-w: 320px;
 }
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
 body {
   font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
   background: var(--bg);
   color: var(--fg);
-  line-height: 1.75;
+  line-height: 1.7;
+  display: flex;
 }
 
-/* --- Sidebar --- */
+/* ── Sidebar ─────────────────────────────────── */
 .sidebar {
-  position: fixed;
-  top: 0; left: 0;
+  flex-shrink: 0;
   width: var(--sidebar-w);
   height: 100vh;
   overflow-y: auto;
   background: #ede7df;
   border-right: 1px solid var(--border);
-  padding: 20px 0;
-  z-index: 100;
-  font-size: 0.82rem;
+  padding: 16px 0;
+  font-size: 0.8rem;
   scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
 }
 .sidebar::-webkit-scrollbar { width: 4px; }
 .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
+.sidebar .brand {
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-align: center;
+  padding: 0 14px 12px;
+  border-bottom: 2px double var(--border);
+  margin-bottom: 10px;
+  color: var(--accent);
+}
+.sidebar .nav-pages {
+  flex: 1;
+  overflow-y: auto;
+}
+.sidebar .nav-page-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 14px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: var(--fg);
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+}
+.sidebar .nav-page-btn:hover {
+  background: rgba(0,0,0,0.04);
+}
+.sidebar .nav-page-btn.active {
+  color: var(--accent);
+  background: rgba(178,34,34,0.06);
+  border-left-color: var(--accent);
+}
+.sidebar .nav-page-btn .count {
+  float: right;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+.sidebar .nav-items-list {
+  display: none;
+  padding: 2px 0 6px;
+}
+.sidebar .nav-page-btn.active + .nav-items-list {
+  display: block;
+}
+.sidebar .nav-item {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 14px 2px 22px;
+  color: var(--fg);
+  text-decoration: none;
+  line-height: 1.3;
+  font-weight: 400;
+  font-size: 0.76rem;
+  border-left: 3px solid transparent;
+  transition: background 0.1s;
+}
+.sidebar .nav-item:hover { background: rgba(0,0,0,0.03); }
+.sidebar .nav-item.current {
+  background: rgba(178,34,34,0.08);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+.sidebar .nav-score {
+  flex-shrink: 0;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #fff;
+  min-width: 22px;
+  text-align: center;
+  padding: 0 3px;
+  border-radius: 2px;
+  line-height: 1.5;
+}
+.sidebar .nav-score.s-high { background: var(--badge-high); }
+.sidebar .nav-score.s-mid  { background: var(--badge-mid); }
+.sidebar .nav-score.s-low  { background: var(--badge-low); }
+.sidebar .nav-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar .nav-sub-topic {
+  margin-bottom: 4px;
+}
+.sidebar .nav-sub-label {
+  padding: 4px 14px 2px 18px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--link);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0.7;
+}
 .resize-handle {
   position: fixed;
   top: 0;
@@ -60,298 +159,545 @@ body {
   opacity: 0.4;
 }
 
-.sidebar .brand {
-  font-size: 1.1rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-align: center;
-  padding: 0 16px 14px;
-  border-bottom: 2px double var(--border);
-  margin-bottom: 12px;
-  color: var(--accent);
-}
-.sidebar .nav-group {
-  margin-bottom: 6px;
-}
-.sidebar .nav-group-title {
-  display: block;
-  padding: 6px 16px;
-  font-weight: 700;
-  color: var(--accent);
-  cursor: pointer;
-  text-decoration: none;
-  border-left: 3px solid transparent;
-  transition: all 0.15s;
-}
-.sidebar .nav-group-title:hover,
-.sidebar .nav-group-title.active {
-  background: rgba(178,34,34,0.06);
-  border-left-color: var(--accent);
-}
-.sidebar .nav-items {
-  display: none;
-  padding: 2px 0;
-}
-.sidebar .nav-group.expanded .nav-items {
-  display: block;
-}
-.sidebar .nav-item {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 3px 16px 3px 24px;
-  color: var(--fg);
-  text-decoration: none;
-  line-height: 1.35;
-  transition: background 0.1s;
-  border-left: 3px solid transparent;
-}
-.sidebar .nav-item:hover {
-  background: rgba(0,0,0,0.04);
-}
-.sidebar .nav-item.current {
-  background: rgba(178,34,34,0.08);
-  border-left-color: var(--accent);
-  font-weight: 600;
-}
-.sidebar .nav-score {
-  flex-shrink: 0;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #fff;
-  min-width: 28px;
-  text-align: center;
-  padding: 0 4px;
-  border-radius: 3px;
-  line-height: 1.5;
-}
-.sidebar .nav-score.s-high { background: var(--badge-high); }
-.sidebar .nav-score.s-mid  { background: var(--badge-mid); }
-.sidebar .nav-score.s-low  { background: var(--badge-low); }
-.sidebar .nav-title {
+/* ── Page Container ──────────────────────────── */
+.pages-wrapper {
+  flex: 1;
+  height: 100vh;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  position: relative;
+}
+.page {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 32px 40px 60px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.page.active {
+  opacity: 1;
+  pointer-events: auto;
 }
 
-/* --- Main content --- */
-.main {
-  margin-left: var(--sidebar-w);
-  padding: 0 28px;
+/* ── Page Indicator ──────────────────────────── */
+.page-indicator {
+  position: fixed;
+  bottom: 16px;
+  left: calc(var(--sidebar-w) + 20px);
+  display: flex;
+  gap: 8px;
+  z-index: 50;
 }
-header {
+.page-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+.page-dot.active {
+  background: var(--accent);
+  transform: scale(1.3);
+}
+.page-nav-hint {
+  position: fixed;
+  bottom: 16px;
+  right: 24px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  z-index: 50;
+}
+
+/* ── Front Page ──────────────────────────────── */
+.front-page-header {
   text-align: center;
-  padding: 36px 0 22px;
+  padding-bottom: 20px;
   border-bottom: 3px double var(--border);
   margin-bottom: 28px;
 }
-header h1 {
-  font-size: 2.2rem;
-  letter-spacing: 0.08em;
+.front-page-header h1 {
+  font-size: 2.6rem;
+  letter-spacing: 0.1em;
   font-weight: 900;
 }
-header .subtitle {
+.front-page-header .date-line {
   font-size: 0.95rem;
   color: var(--muted);
-  margin-top: 6px;
+  margin-top: 4px;
 }
-.stats {
+.front-page-header .stats {
   display: flex;
   justify-content: center;
-  gap: 24px;
-  margin-top: 12px;
-  font-size: 0.85rem;
+  gap: 20px;
+  margin-top: 10px;
+  font-size: 0.82rem;
   color: var(--muted);
 }
-.stats span { font-weight: 600; color: var(--fg); }
+.front-page-header .stats span { font-weight: 600; color: var(--fg); }
 
-/* --- Grid: auto-fill columns based on available width --- */
-.group-section {
-  margin-bottom: 36px;
-  scroll-margin-top: 20px;
-}
-.group-section h2 {
-  font-size: 1.4rem;
-  border-bottom: 2px solid var(--accent);
-  padding-bottom: 6px;
-  margin-bottom: 18px;
-  color: var(--accent);
-  letter-spacing: 0.04em;
-}
-.items-grid {
+.headline-zone {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--card-min-w), 1fr));
-  gap: 18px;
+  grid-template-columns: 3fr 2fr;
+  gap: 20px;
+  margin-bottom: 24px;
 }
-
-.item-card {
+.headline-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 4px;
-  padding: 16px 18px;
-  transition: box-shadow 0.15s;
-  scroll-margin-top: 20px;
+  padding: 20px 24px;
 }
-.item-card:hover {
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+.headline-card:first-child {
+  border-left: 4px solid var(--accent);
 }
-.item-card:target {
-  box-shadow: 0 0 0 2px var(--accent);
+.headline-card .hl-score {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
 }
-.item-header {
+.headline-card .hl-title {
+  font-size: 1.3rem;
+  font-weight: 900;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+.headline-card:first-child .hl-title {
+  font-size: 1.5rem;
+}
+.headline-card .hl-title a {
+  color: var(--fg);
+  text-decoration: none;
+}
+.headline-card .hl-title a:hover { color: var(--link); }
+.headline-card .hl-summary {
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: #333;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.headline-card:first-child .hl-summary {
+  -webkit-line-clamp: 6;
+}
+.headline-card .hl-meta {
+  font-size: 0.74rem;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.front-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.front-section:last-child {
+  border-bottom: none;
+}
+.picks-label {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent);
+  padding-bottom: 6px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.picks-label .section-link {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 2px;
+}
+.picks-label .section-link:hover {
+  opacity: 0.8;
+}
+.picks-label .section-total {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--link);
+  cursor: pointer;
+}
+.picks-label .section-total:hover {
+  text-decoration: underline;
+}
+.picks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 14px;
+}
+.pick-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 16px;
+}
+.pick-card .pick-header {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+}
+.pick-card .pick-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.pick-card .pick-title a {
+  color: var(--fg);
+  text-decoration: none;
+}
+.pick-card .pick-title a:hover { color: var(--link); }
+.pick-card .pick-summary {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #555;
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pick-card .pick-meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* ── Section Pages (multi-column) ────────────── */
+.section-header {
+  border-bottom: 3px double var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 24px;
+}
+.section-header h2 {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+.section-header .section-count {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.sub-topic-section {
+  margin-bottom: 28px;
+}
+.sub-topic-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--link);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+}
+.sub-topic-count {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 6px;
+}
+.columns-flow {
+  column-width: 420px;
+  column-gap: 20px;
+}
+
+.col-card {
+  break-inside: avoid;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.col-card .item-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-bottom: 5px;
 }
 .score-badge {
   flex-shrink: 0;
   display: inline-block;
-  min-width: 36px;
+  min-width: 34px;
   text-align: center;
-  padding: 2px 7px;
+  padding: 2px 6px;
   border-radius: 4px;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: #fff;
 }
 .score-high { background: var(--badge-high); }
 .score-mid  { background: var(--badge-mid); }
 .score-low  { background: var(--badge-low); }
-.item-title {
-  font-size: 1rem;
+.col-card .item-title {
+  font-size: 0.95rem;
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.35;
 }
-.item-title a {
+.col-card .item-title a {
   color: var(--fg);
   text-decoration: none;
   border-bottom: 1px solid transparent;
 }
-.item-title a:hover {
+.col-card .item-title a:hover {
   color: var(--link);
   border-bottom-color: var(--link);
 }
-.item-meta {
-  font-size: 0.76rem;
+.col-card .item-meta {
+  font-size: 0.72rem;
   color: var(--muted);
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
-.item-summary {
-  font-size: 0.88rem;
-  line-height: 1.65;
+.col-card .item-summary {
+  font-size: 0.84rem;
+  line-height: 1.6;
   color: #333;
 }
-.item-tags {
-  margin-top: 8px;
+.col-card .item-tags {
+  margin-top: 6px;
 }
 .tag {
   display: inline-block;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   background: #e8e0d6;
   color: var(--muted);
-  padding: 1px 7px;
+  padding: 1px 6px;
   border-radius: 3px;
   margin-right: 3px;
   margin-bottom: 3px;
 }
-.item-bg, .item-disc {
-  margin-top: 8px;
-  padding: 10px 14px;
+.col-card .item-bg, .col-card .item-disc {
+  margin-top: 6px;
+  padding: 8px 12px;
   background: #f9f6f2;
   border-left: 3px solid var(--border);
-  font-size: 0.84rem;
-  line-height: 1.6;
+  font-size: 0.8rem;
+  line-height: 1.55;
   color: #444;
 }
-.item-bg .label, .item-disc .label {
+.col-card .item-bg .label, .col-card .item-disc .label {
   font-weight: 700;
   color: var(--link);
-  margin-bottom: 4px;
-  font-size: 0.8rem;
-}
-details {
-  margin-top: 8px;
-  font-size: 0.84rem;
-}
-details summary {
-  cursor: pointer;
-  color: var(--link);
-  font-size: 0.8rem;
-}
-details .bg-content {
-  margin-top: 6px;
-  padding: 10px 14px;
-  background: #f9f6f2;
-  border-left: 3px solid var(--border);
-  line-height: 1.6;
-  color: #444;
+  margin-bottom: 3px;
+  font-size: 0.76rem;
 }
 
 footer {
   text-align: center;
-  padding: 24px 0 40px;
+  padding: 20px 0;
+  margin-top: 32px;
   border-top: 1px solid var(--border);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--muted);
 }
 
 @media (max-width: 960px) {
   .sidebar, .resize-handle { display: none; }
-  .main { margin-left: 0; padding: 0 16px; }
+  .headline-zone { grid-template-columns: 1fr; }
+  .page-indicator { left: 20px; }
 }
 @media (max-width: 600px) {
-  .items-grid { grid-template-columns: 1fr; }
-  header h1 { font-size: 1.6rem; }
-  .stats { flex-direction: column; gap: 4px; }
+  .page { padding: 16px; }
+  .front-page-header h1 { font-size: 1.6rem; }
+  .picks-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 
+<!-- ── Sidebar ── -->
 <nav class="sidebar" id="sidebar">
   <div class="brand">HORIZON</div>
+  <div class="nav-pages">
+    <button class="nav-page-btn active" data-page="0" onclick="goPage(0)">
+      头版
+    </button>
 
-  {% for group in groups %}
-  {% set gidx = loop.index %}
-  <div class="nav-group{% if loop.first %} expanded{% endif %}" data-group="group-{{ gidx }}">
-    <a class="nav-group-title" href="#group-{{ gidx }}" onclick="toggleNavGroup(this.parentElement)">
-      {{ group.name }}
-      <span style="float:right;font-size:0.7rem;color:var(--muted)">{{ group.entries|length }}</span>
-    </a>
-    <div class="nav-items">
-      {% for item in group.entries %}
-      <a class="nav-item" href="#card-{{ gidx }}-{{ loop.index }}"
-         data-card="card-{{ gidx }}-{{ loop.index }}">
-        {% if item.score is not none %}
-        <span class="nav-score {% if item.score >= 8.5 %}s-high{% elif item.score >= 7.0 %}s-mid{% else %}s-low{% endif %}">{{ "%.0f"|format(item.score) }}</span>
-        {% endif %}
-        <span class="nav-title">{{ item.title }}</span>
-      </a>
-      {% endfor %}
+    {% for group in groups %}
+    {% set gidx = loop.index %}
+    <button class="nav-page-btn" data-page="{{ gidx }}" onclick="goPage({{ gidx }})">
+      {{ group.name }} <span class="count">{{ group.entries|length }}</span>
+    </button>
+    <div class="nav-items-list">
+      {% if group.sub_topics %}
+        {% for topic in group.sub_topics %}
+        <div class="nav-sub-topic">
+          <div class="nav-sub-label">{{ topic.name }}</div>
+          {% for item in topic.entries %}
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage({{ gidx }});scrollToCard('sec-{{ gidx }}-st{{ loop.parent.loop.index if loop.parent is defined else 0 }}-{{ loop.index }}')"
+             data-card="sec-{{ gidx }}-st-{{ loop.index }}">
+            {% if item.score is not none %}
+            <span class="nav-score {% if item.score >= 8.5 %}s-high{% elif item.score >= 7.0 %}s-mid{% else %}s-low{% endif %}">{{ "%.0f"|format(item.score) }}</span>
+            {% endif %}
+            <span class="nav-title">{{ item.title }}</span>
+          </a>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      {% else %}
+        {% for item in group.entries %}
+        <a class="nav-item" href="javascript:void(0)"
+           onclick="goPage({{ gidx }});scrollToCard('sec-{{ gidx }}-{{ loop.index }}')"
+           data-card="sec-{{ gidx }}-{{ loop.index }}">
+          {% if item.score is not none %}
+          <span class="nav-score {% if item.score >= 8.5 %}s-high{% elif item.score >= 7.0 %}s-mid{% else %}s-low{% endif %}">{{ "%.0f"|format(item.score) }}</span>
+          {% endif %}
+          <span class="nav-title">{{ item.title }}</span>
+        </a>
+        {% endfor %}
+      {% endif %}
     </div>
+    {% endfor %}
   </div>
-  {% endfor %}
 </nav>
+
 <div class="resize-handle" id="resizeHandle"></div>
 
-<div class="main">
-  <header>
-    <h1>HORIZON 日报</h1>
-    <div class="subtitle">{{ date }}</div>
-    <div class="stats">
-      <div>抓取 <span>{{ total_fetched }}</span> 条</div>
-      <div>精选 <span>{{ total_selected }}</span> 条</div>
-    </div>
-  </header>
+<!-- ── Pages ── -->
+<div class="pages-wrapper" id="pagesWrapper">
 
+  <!-- Page 0: Front Page -->
+  <div class="page active" data-page-idx="0">
+    <div class="front-page-header">
+      <h1>HORIZON 日报</h1>
+      <div class="date-line">{{ date }}</div>
+      <div class="stats">
+        <div>抓取 <span>{{ total_fetched }}</span> 条</div>
+        <div>精选 <span>{{ total_selected }}</span> 条</div>
+      </div>
+    </div>
+
+    {% for group in groups %}
+    {% set gidx = loop.index %}
+    <div class="front-section">
+      <div class="picks-label">
+        <a href="javascript:void(0)" onclick="goPage({{ gidx }})" class="section-link">{{ group.name }}</a>
+        <span class="section-total">共 {{ group.entries|length }} 条 →</span>
+      </div>
+      {% if loop.first and group.entries|length >= 2 %}
+      <div class="headline-zone">
+        {% for item in group.entries[:2] %}
+        <div class="headline-card">
+          {% if item.score is not none %}
+          <span class="hl-score {% if item.score >= 8.5 %}score-high{% elif item.score >= 7.0 %}score-mid{% else %}score-low{% endif %}">{{ "%.1f"|format(item.score) }}</span>
+          {% endif %}
+          <div class="hl-title"><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a></div>
+          {% if item.summary %}
+          <div class="hl-summary">{{ item.summary }}</div>
+          {% endif %}
+          <div class="hl-meta">{{ item.source_line }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="picks-grid">
+        {% for item in group.entries[2:5] %}
+        <div class="pick-card">
+          <div class="pick-header">
+            {% if item.score is not none %}
+            <span class="score-badge {% if item.score >= 8.5 %}score-high{% elif item.score >= 7.0 %}score-mid{% else %}score-low{% endif %}">{{ "%.1f"|format(item.score) }}</span>
+            {% endif %}
+            <div class="pick-title"><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a></div>
+          </div>
+          {% if item.summary %}
+          <div class="pick-summary">{{ item.summary }}</div>
+          {% endif %}
+          <div class="pick-meta">{{ item.source_line }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="picks-grid">
+        {% for item in group.entries[:5] %}
+        <div class="pick-card">
+          <div class="pick-header">
+            {% if item.score is not none %}
+            <span class="score-badge {% if item.score >= 8.5 %}score-high{% elif item.score >= 7.0 %}score-mid{% else %}score-low{% endif %}">{{ "%.1f"|format(item.score) }}</span>
+            {% endif %}
+            <div class="pick-title"><a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a></div>
+          </div>
+          {% if item.summary %}
+          <div class="pick-summary">{{ item.summary }}</div>
+          {% endif %}
+          <div class="pick-meta">{{ item.source_line }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <footer>Horizon — AI-Driven Information Aggregation</footer>
+  </div>
+
+  <!-- Section Pages -->
   {% for group in groups %}
   {% set gidx = loop.index %}
-  <section class="group-section" id="group-{{ gidx }}">
-    <h2>{{ group.name }}</h2>
-    <div class="items-grid">
+  <div class="page" data-page-idx="{{ gidx }}">
+    <div class="section-header">
+      <h2>{{ group.name }}</h2>
+      <div class="section-count">共 {{ group.entries|length }} 条</div>
+    </div>
+
+    {% if group.sub_topics %}
+    {% for topic in group.sub_topics %}
+    <div class="sub-topic-section">
+      <h3 class="sub-topic-title">{{ topic.name }} <span class="sub-topic-count">{{ topic.entries|length }}</span></h3>
+      <div class="columns-flow">
+        {% for item in topic.entries %}
+        <div class="col-card" id="sec-{{ gidx }}-st{{ loop.parent.loop.index if loop.parent is defined else 0 }}-{{ loop.index }}">
+          <div class="item-header">
+            {% if item.score is not none %}
+            <span class="score-badge {% if item.score >= 8.5 %}score-high{% elif item.score >= 7.0 %}score-mid{% else %}score-low{% endif %}">
+              {{ "%.1f"|format(item.score) }}
+            </span>
+            {% endif %}
+            <div class="item-title">
+              <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
+            </div>
+          </div>
+          <div class="item-meta">{{ item.source_line }}</div>
+          {% if item.summary %}
+          <div class="item-summary">{{ item.summary }}</div>
+          {% endif %}
+          {% if item.tags %}
+          <div class="item-tags">
+            {% for tag in item.tags %}<span class="tag">{{ tag }}</span>{% endfor %}
+          </div>
+          {% endif %}
+          {% if item.background %}
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            {{ item.background }}
+          </div>
+          {% endif %}
+          {% if item.discussion %}
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            {{ item.discussion }}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="columns-flow">
       {% for item in group.entries %}
-      <article class="item-card" id="card-{{ gidx }}-{{ loop.index }}">
+      <div class="col-card" id="sec-{{ gidx }}-{{ loop.index }}">
         <div class="item-header">
           {% if item.score is not none %}
           <span class="score-badge {% if item.score >= 8.5 %}score-high{% elif item.score >= 7.0 %}score-mid{% else %}score-low{% endif %}">
@@ -383,29 +729,60 @@ footer {
           {{ item.discussion }}
         </div>
         {% endif %}
-      </article>
+      </div>
       {% endfor %}
     </div>
-  </section>
+    {% endif %}
+
+    <footer>Horizon — AI-Driven Information Aggregation</footer>
+  </div>
   {% endfor %}
 
-  <footer>
-    Horizon — AI-Driven Information Aggregation
-  </footer>
 </div>
 
+<!-- ── Page Indicators ── -->
+<div class="page-indicator" id="pageIndicator">
+  <button class="page-dot active" data-page="0" onclick="goPage(0)" title="头版"></button>
+  {% for group in groups %}
+  <button class="page-dot" data-page="{{ loop.index }}" onclick="goPage({{ loop.index }})" title="{{ group.name }}"></button>
+  {% endfor %}
+</div>
+<div class="page-nav-hint">← → 翻页</div>
+
 <script>
-function toggleNavGroup(el) {
-  el.classList.toggle('expanded');
+var currentPage = 0;
+var totalPages = document.querySelectorAll('.page').length;
+
+function goPage(idx) {
+  if (idx < 0 || idx >= totalPages) return;
+  currentPage = idx;
+
+  document.querySelectorAll('.page').forEach(function(p, i) {
+    p.classList.toggle('active', i === idx);
+    if (i === idx) p.scrollTop = 0;
+  });
+
+  document.querySelectorAll('.page-dot').forEach(function(d) {
+    d.classList.toggle('active', parseInt(d.dataset.page) === idx);
+  });
+
+  document.querySelectorAll('.nav-page-btn').forEach(function(b) {
+    b.classList.toggle('active', parseInt(b.dataset.page) === idx);
+  });
 }
 
-/* Sidebar resize via drag handle */
+function scrollToCard(id) {
+  setTimeout(function() {
+    var el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+/* Sidebar resize */
 (function() {
   var handle = document.getElementById('resizeHandle');
-  var sidebar = document.getElementById('sidebar');
   var root = document.documentElement;
   var dragging = false;
-
   handle.addEventListener('mousedown', function(e) {
     e.preventDefault();
     dragging = true;
@@ -413,13 +790,11 @@ function toggleNavGroup(el) {
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   });
-
   document.addEventListener('mousemove', function(e) {
     if (!dragging) return;
     var w = Math.max(200, Math.min(e.clientX, 600));
     root.style.setProperty('--sidebar-w', w + 'px');
   });
-
   document.addEventListener('mouseup', function() {
     if (dragging) {
       dragging = false;
@@ -430,33 +805,15 @@ function toggleNavGroup(el) {
   });
 })();
 
-/* Highlight current card in sidebar on scroll */
-(function() {
-  var cards = document.querySelectorAll('.item-card[id]');
-  var navItems = document.querySelectorAll('.sidebar .nav-item[data-card]');
-  var navMap = {};
-  navItems.forEach(function(a) { navMap[a.dataset.card] = a; });
-
-  var ticking = false;
-  window.addEventListener('scroll', function() {
-    if (!ticking) {
-      requestAnimationFrame(function() {
-        var scrollY = window.scrollY + 80;
-        var current = null;
-        cards.forEach(function(c) {
-          if (c.offsetTop <= scrollY) current = c.id;
-        });
-        navItems.forEach(function(a) { a.classList.remove('current'); });
-        if (current && navMap[current]) {
-          navMap[current].classList.add('current');
-          navMap[current].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }
-        ticking = false;
-      });
-      ticking = true;
-    }
-  });
-})();
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    goPage(currentPage + 1);
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    goPage(currentPage - 1);
+  }
+});
 </script>
 </body>
 </html>
