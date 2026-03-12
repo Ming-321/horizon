@@ -86,9 +86,11 @@
       "categories": ["ai-tools", "linux", "hackernews", "reddit", "telegram"],
       "scoring": {
         "enabled": true,
-        "prompt_file": null,
-        "threshold": 6.0
-      }
+        "prompt_file": "scoring_headlines.txt",
+        "threshold": 7.0
+      },
+      "enrichment_mode": "full",
+      "enrichment_prompt_file": null
     },
     {
       "id": "watched",
@@ -96,7 +98,21 @@
       "categories": ["github-updates"],
       "scoring": {
         "enabled": false
-      }
+      },
+      "enrichment_mode": "summary_only",
+      "enrichment_prompt_file": "enrichment_watched_summary.txt"
+    },
+    {
+      "id": "github_trending",
+      "name": "GitHub Trending",
+      "categories": ["github-trending"],
+      "scoring": {
+        "enabled": true,
+        "prompt_file": "scoring_github_trending.txt",
+        "threshold": 7.0
+      },
+      "enrichment_mode": "full",
+      "enrichment_prompt_file": "enrichment_github_trending.txt"
     }
   ]
 }

@@ -103,6 +103,24 @@
         "url": "https://old.reddit.com/r/LocalLLaMA/hot/.rss?limit=15",
         "enabled": true,
         "category": "reddit-llm"
+      },
+      {
+        "name": "GitHub Trending - Python",
+        "url": "https://mshibanami.github.io/GitHubTrendingRSS/daily/python.xml",
+        "enabled": true,
+        "category": "github-trending"
+      },
+      {
+        "name": "GitHub Trending - TypeScript",
+        "url": "https://mshibanami.github.io/GitHubTrendingRSS/daily/typescript.xml",
+        "enabled": true,
+        "category": "github-trending"
+      },
+      {
+        "name": "GitHub Trending - CUDA",
+        "url": "https://mshibanami.github.io/GitHubTrendingRSS/daily/cuda.xml",
+        "enabled": true,
+        "category": "github-trending"
       }
     ],
     "reddit": {
@@ -151,12 +169,14 @@
       "categories": ["tech-analysis", "hackernews", "ai-tools", "ai-news-zh", "ai-open-source", "reddit-ml", "reddit-llm", "reddit", "telegram", "github-activity", "linux-kernel"],
       "scoring": {
         "enabled": true,
-        "prompt_file": null,
+        "prompt_file": "scoring_headlines.txt",
         "threshold": 7.0
       },
       "summary": {
         "prompt_file": null
-      }
+      },
+      "enrichment_mode": "full",
+      "enrichment_prompt_file": null
     },
     {
       "id": "watched",
@@ -167,7 +187,9 @@
       },
       "summary": {
         "prompt_file": null
-      }
+      },
+      "enrichment_mode": "summary_only",
+      "enrichment_prompt_file": "enrichment_watched_summary.txt"
     },
     {
       "id": "github_trending",
@@ -175,12 +197,14 @@
       "categories": ["github-trending"],
       "scoring": {
         "enabled": true,
-        "prompt_file": null,
+        "prompt_file": "scoring_github_trending.txt",
         "threshold": 7.0
       },
       "summary": {
         "prompt_file": null
-      }
+      },
+      "enrichment_mode": "full",
+      "enrichment_prompt_file": "enrichment_github_trending.txt"
     }
   ]
 }

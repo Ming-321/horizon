@@ -2,7 +2,9 @@
 
 import argparse
 import asyncio
+import logging
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -13,6 +15,19 @@ from .orchestrator import HorizonOrchestrator
 
 
 console = Console()
+
+
+def _setup_logging() -> None:
+    """Configure file-based logging (INFO level, minute precision)."""
+    log_dir = Path("data/logs")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / f"horizon-{datetime.now().strftime('%Y-%m-%d')}.log"
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(name)s %(levelname)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M",
+        handlers=[logging.FileHandler(log_file, encoding="utf-8")],
+    )
 
 
 def print_banner():
@@ -40,8 +55,8 @@ def main():
     args = parser.parse_args()
 
     try:
-        # Load environment variables from .env file
         load_dotenv()
+        _setup_logging()
 
         # Ensure we're in the project directory or use data/ in current dir
         data_dir = Path("data")

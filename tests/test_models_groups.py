@@ -18,6 +18,19 @@ def test_group_config_defaults():
     assert g.scoring.threshold == 7.0
     assert g.scoring.prompt_file is None
     assert g.summary.prompt_file is None
+    assert g.enrichment_mode == "full"
+    assert g.enrichment_prompt_file is None
+
+
+def test_group_config_enrichment_custom():
+    g = GroupConfig(
+        id="watched",
+        name="Watched",
+        enrichment_mode="summary_only",
+        enrichment_prompt_file="enrichment_watched_summary.txt",
+    )
+    assert g.enrichment_mode == "summary_only"
+    assert g.enrichment_prompt_file == "enrichment_watched_summary.txt"
 
 
 def test_group_config_custom():
@@ -62,9 +75,13 @@ def test_config_loads_with_groups():
     assert len(config.groups) == 3
     assert config.groups[0].id == "headlines"
     assert config.groups[0].default is True
+    assert config.groups[0].enrichment_mode == "full"
+    assert config.groups[0].enrichment_prompt_file is None
     assert config.groups[1].id == "watched"
     assert config.groups[1].scoring.enabled is False
+    assert config.groups[1].enrichment_mode == "summary_only"
     assert config.groups[2].id == "github_trending"
+    assert config.groups[2].enrichment_mode == "full"
 
 
 def test_config_loads_without_groups():

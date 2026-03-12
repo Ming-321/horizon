@@ -1,7 +1,9 @@
 """Main orchestrator coordinating the entire workflow."""
 
 import asyncio
+import logging
 import re
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -9,6 +11,8 @@ from typing import Callable, Dict, List, Optional
 from urllib.parse import urlparse
 import httpx
 from rich.console import Console
+
+logger = logging.getLogger(__name__)
 
 from .models import Config, ContentItem, GroupConfig, ScoringConfig
 from .storage.manager import StorageManager
@@ -22,7 +26,7 @@ from .ai.client import create_ai_client, TokenUsageTracker
 from .ai.analyzer import ContentAnalyzer
 from .ai.summarizer import DailySummarizer
 from .ai.enricher import ContentEnricher
-from .ai.prompts import get_scoring_prompt
+from .ai.prompts import get_scoring_prompt, load_enrichment_prompt
 
 
 @dataclass
@@ -52,29 +56,51 @@ class HorizonOrchestrator:
             since = self._determine_time_window(force_hours)
             self.console.print(f"\N{CALENDAR} Fetching content since: {since.strftime('%Y-%m-%d %H:%M:%S')}\n")
 
+            logger.info("fetch: starting...")
+            t0 = time.monotonic()
             all_items = await self.fetch_all_sources(since)
+            logger.info("fetch: completed %d items in %.1fs", len(all_items), time.monotonic() - t0)
             self.console.print(f"\N{INBOX TRAY} Fetched {len(all_items)} items from all sources\n")
 
             if not all_items:
                 self.console.print("[yellow]No new content found. Exiting.[/yellow]")
                 return
 
+            logger.info("dedup: starting with %d items", len(all_items))
+            t0 = time.monotonic()
             merged_items = self.merge_cross_source_duplicates(all_items)
+            logger.info("dedup: %d → %d items in %.1fs", len(all_items), len(merged_items), time.monotonic() - t0)
             if len(merged_items) < len(all_items):
                 self.console.print(
                     f"\N{LINK SYMBOL} Merged {len(all_items) - len(merged_items)} cross-source duplicates "
                     f"\N{RIGHTWARDS ARROW} {len(merged_items)} unique items\n"
                 )
 
+            logger.info("repo_aggregation: starting with %d items", len(merged_items))
+            t0 = time.monotonic()
+            before_agg = len(merged_items)
+            merged_items = self._aggregate_repo_updates(merged_items)
+            logger.info("repo_aggregation: %d → %d items in %.1fs", before_agg, len(merged_items), time.monotonic() - t0)
+            if len(merged_items) < before_agg:
+                self.console.print(
+                    f"\N{PACKAGE} Aggregated repo updates: {before_agg} \N{RIGHTWARDS ARROW} {len(merged_items)} items\n"
+                )
+
             tracker = TokenUsageTracker()
 
+            logger.info("route: starting...")
             grouped = self._route_to_groups(merged_items)
+            group_summary = ", ".join(f"{n}={len(b.items)}" for n, b in grouped.items())
+            logger.info("route: %d groups [%s]", len(grouped), group_summary)
 
             ai_client = create_ai_client(self.config.ai)
             analyzer = ContentAnalyzer(ai_client)
 
             for name, bucket in grouped.items():
                 if bucket.group.scoring.enabled:
+                    total = len(bucket.items)
+                    logger.info("[%s] scoring: starting %d items", name, total)
+                    t0 = time.monotonic()
                     resolver = self._build_prompt_resolver(bucket.group)
                     analyzed, usage = await analyzer.analyze_batch(
                         bucket.items, prompt_resolver=resolver,
@@ -86,10 +112,12 @@ class HorizonOrchestrator:
                         if i.ai_score is not None and i.ai_score >= threshold
                     ]
                     bucket.items.sort(key=lambda x: x.ai_score or 0, reverse=True)
+                    logger.info("[%s] scoring: %d/%d above threshold in %.1fs", name, len(bucket.items), total, time.monotonic() - t0)
                     self.console.print(
                         f"\N{WHITE MEDIUM STAR} [{name}] {len(bucket.items)} items scored \N{GREATER-THAN OR EQUAL TO} {threshold}\n"
                     )
                 else:
+                    logger.info("[%s] scoring: skipped (bypass), %d items", name, len(bucket.items))
                     self.console.print(
                         f"\N{TRIANGULAR FLAG ON POST} [{name}] {len(bucket.items)} items (bypass \N{EM DASH} no scoring)\n"
                     )
@@ -116,8 +144,37 @@ class HorizonOrchestrator:
                         self.console.print(f"      \N{BULLET} {source_key}: {count}")
             self.console.print("")
 
-            all_important = [i for b in grouped.values() for i in b.items]
-            await self._enrich_important_items(all_important, tracker=tracker)
+            ai_client_enrich = create_ai_client(self.config.ai)
+            enricher = ContentEnricher(ai_client_enrich)
+            _VALID_ENRICHMENT_MODES = {"full", "summary_only", "none"}
+            for name, bucket in grouped.items():
+                mode = bucket.group.enrichment_mode
+                if mode not in _VALID_ENRICHMENT_MODES:
+                    logger.error("[%s] invalid enrichment_mode '%s', skipping enrichment", name, mode)
+                    continue
+                if mode == "none":
+                    logger.info("[%s] enrich: skipped (mode=none)", name)
+                    self.console.print(f"   [{name}] skipped enrichment\n")
+                    continue
+                if not bucket.items:
+                    logger.info("[%s] enrich: skipped (empty bucket)", name)
+                    continue
+                logger.info("[%s] enrich: starting %d items (mode=%s)", name, len(bucket.items), mode)
+                t0 = time.monotonic()
+                prompt = load_enrichment_prompt(bucket.group)
+                if mode == "summary_only":
+                    usage = await enricher.summarize_batch(
+                        bucket.items, system_prompt=prompt,
+                    )
+                else:
+                    usage = await enricher.enrich_batch(
+                        bucket.items, enrichment_system_prompt=prompt,
+                    )
+                tracker.track(usage)
+                logger.info("[%s] enrich: completed %d items in %.1fs", name, len(bucket.items), time.monotonic() - t0)
+                self.console.print(
+                    f"\N{BOOKS} [{name}] enriched {len(bucket.items)} items (mode={mode})\n"
+                )
 
             grouped_for_summary: Dict[str, List[ContentItem]] = {}
             for name, bucket in grouped.items():
@@ -126,9 +183,12 @@ class HorizonOrchestrator:
 
             today = datetime.utcnow().strftime("%Y-%m-%d")
             for lang in self.config.ai.languages:
+                logger.info("summarize: starting for %s", lang)
+                t0 = time.monotonic()
                 summary = await self._generate_summary(
                     grouped_for_summary, today, len(all_items), language=lang,
                 )
+                logger.info("summarize: completed for %s in %.1fs", lang, time.monotonic() - t0)
 
                 summary_path = self.storage.save_daily_summary(today, summary, language=lang)
                 self.console.print(f"\N{FLOPPY DISK} Saved {lang.upper()} summary to: {summary_path}\n")
@@ -201,6 +261,52 @@ class HorizonOrchestrator:
         self.console.print("")
 
         return buckets
+
+    # ------------------------------------------------------------------
+    # Repo aggregation
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _aggregate_repo_updates(items: List[ContentItem]) -> List[ContentItem]:
+        """Merge multiple commits from the same repo (commits.atom) into one item."""
+        aggregated = []
+        repo_buckets: Dict[str, List[ContentItem]] = {}
+        for item in items:
+            if item.category == "github-updates" and item.metadata.get("feed_name"):
+                repo_buckets.setdefault(item.metadata["feed_name"], []).append(item)
+            else:
+                aggregated.append(item)
+        for feed_name, repo_items in repo_buckets.items():
+            if len(repo_items) == 1:
+                aggregated.append(repo_items[0])
+                continue
+            repo_items.sort(
+                key=lambda x: (x.published_at is not None, x.published_at.timestamp() if x.published_at else float("-inf")),
+                reverse=True,
+            )
+            newest = repo_items[0]
+            top_summaries = [
+                it.title.split(": ", 1)[-1] if ": " in it.title else it.title
+                for it in repo_items[:2]
+            ]
+            title = f"{feed_name}: {len(repo_items)} updates \u2014 {', '.join(top_summaries)}"
+            content_lines = [
+                f"- [{it.published_at.strftime('%H:%M') if it.published_at else '??:??'}] {it.title}"
+                for it in repo_items
+            ]
+            merged = ContentItem(
+                id=newest.id,
+                source_type=newest.source_type,
+                title=title,
+                url=newest.url,
+                content="\n".join(content_lines),
+                author=newest.author,
+                published_at=newest.published_at,
+                category=newest.category,
+                metadata={**newest.metadata, "commit_count": len(repo_items)},
+            )
+            aggregated.append(merged)
+        return aggregated
 
     # ------------------------------------------------------------------
     # Prompt resolution

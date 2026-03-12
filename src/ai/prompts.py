@@ -2,7 +2,10 @@
 
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..models import GroupConfig
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +20,13 @@ def load_prompt(filename: str) -> Optional[str]:
     except FileNotFoundError:
         logger.warning("Prompt file not found: %s, falling back to default", path)
         return None
+
+
+def load_enrichment_prompt(group: "GroupConfig") -> Optional[str]:
+    """Load enrichment prompt file for a group. Returns None if not configured or file missing."""
+    if group.enrichment_prompt_file:
+        return load_prompt(group.enrichment_prompt_file)
+    return None
 
 
 def get_scoring_prompt(

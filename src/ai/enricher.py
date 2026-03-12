@@ -6,13 +6,17 @@ For items that pass the score threshold, this module:
 """
 
 import json
+import logging
 import re
 import sys
 import os
+import time
 from typing import List, Optional
 from tenacity import retry, stop_after_attempt, wait_exponential
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, MofNCompleteColumn
 from ddgs import DDGS
+
+logger = logging.getLogger(__name__)
 
 from .client import AIClient, TokenUsage, TokenUsageTracker
 from .prompts import (
@@ -22,17 +26,27 @@ from .prompts import (
 from ..models import ContentItem
 
 
+_DEFAULT_SUMMARY_PROMPT = (
+    "Summarize the following content changes. "
+    'Output JSON: {"summary_en": "...", "summary_zh": "..."}'
+)
+
+
 class ContentEnricher:
     """Enriches high-scoring content items with background knowledge."""
 
     def __init__(self, ai_client: AIClient):
         self.client = ai_client
 
-    async def enrich_batch(self, items: List[ContentItem]) -> TokenUsage:
+    async def enrich_batch(
+        self, items: List[ContentItem], enrichment_system_prompt: str = None,
+    ) -> TokenUsage:
         """Enrich items in-place with background knowledge.
 
         Returns aggregated TokenUsage for all AI calls during enrichment.
         """
+        logger.info("enrich_batch: starting %d items", len(items))
+        t0 = time.monotonic()
         tracker = TokenUsageTracker()
 
         with Progress(
@@ -46,17 +60,90 @@ class ContentEnricher:
 
             for item in items:
                 try:
-                    usage = await self._enrich_item(item)
+                    usage = await self._enrich_item(
+                        item, enrichment_system_prompt=enrichment_system_prompt,
+                    )
                     if usage:
                         tracker.track(usage)
                 except Exception as e:
-                    print(f"Error enriching item {item.id}: {e}")
+                    logger.error("Error enriching item %s: %s", item.id, e)
                 progress.advance(task)
 
-        return TokenUsage(
+        result = TokenUsage(
             prompt_tokens=tracker.total_prompt_tokens,
             completion_tokens=tracker.total_completion_tokens,
         )
+        logger.info("enrich_batch: completed %d items in %.1fs", len(items), time.monotonic() - t0)
+        return result
+
+    async def summarize_batch(
+        self, items: List[ContentItem], system_prompt: str = None,
+    ) -> TokenUsage:
+        """Light-weight enrichment: single AI call per item, no web search.
+
+        Writes: metadata["detailed_summary_en"], metadata["detailed_summary_zh"],
+                metadata["detailed_summary"].
+        Does NOT write: concepts, search_results, background, community_discussion.
+        """
+        logger.info("summarize_batch: starting %d items", len(items))
+        t0 = time.monotonic()
+        prompt = system_prompt or _DEFAULT_SUMMARY_PROMPT
+        tracker = TokenUsageTracker()
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            MofNCompleteColumn(),
+            transient=True,
+        ) as progress:
+            task = progress.add_task("Summarizing", total=len(items))
+
+            for item in items:
+                try:
+                    usage = await self._summarize_item(item, system_prompt=prompt)
+                    if usage:
+                        tracker.track(usage)
+                except Exception as e:
+                    logger.error("Error summarizing item %s: %s", item.id, e)
+                progress.advance(task)
+
+        result = TokenUsage(
+            prompt_tokens=tracker.total_prompt_tokens,
+            completion_tokens=tracker.total_completion_tokens,
+        )
+        logger.info("summarize_batch: completed %d items in %.1fs", len(items), time.monotonic() - t0)
+        return result
+
+    async def _summarize_item(
+        self, item: ContentItem, system_prompt: str = None,
+    ) -> TokenUsage:
+        """Single AI call: generate {summary_en, summary_zh} from item content."""
+        prompt = system_prompt or _DEFAULT_SUMMARY_PROMPT
+        content_text = (item.content or item.title)[:4000]
+
+        user_prompt = (
+            f"Title: {item.title}\n"
+            f"URL: {item.url}\n\n"
+            f"Content:\n{content_text}"
+        )
+
+        completion = await self.client.complete(
+            system=prompt,
+            user=user_prompt,
+            temperature=0.3,
+        )
+
+        result = self._parse_json_response(completion.text)
+        if result is None:
+            logger.warning("Could not parse summary response for %s", item.id)
+            return completion.usage
+
+        item.metadata["detailed_summary_en"] = result.get("summary_en", "")
+        item.metadata["detailed_summary_zh"] = result.get("summary_zh", "")
+        item.metadata["detailed_summary"] = result.get("summary_en", "")
+
+        return completion.usage
 
     async def _web_search(self, query: str, max_results: int = 3) -> list:
         """Search the web for context via DuckDuckGo.
@@ -167,7 +254,9 @@ class ContentEnricher:
         stop=stop_after_attempt(3),
         wait=wait_exponential(min=2, max=10)
     )
-    async def _enrich_item(self, item: ContentItem) -> TokenUsage:
+    async def _enrich_item(
+        self, item: ContentItem, enrichment_system_prompt: str = None,
+    ) -> TokenUsage:
         """Enrich a single item with background knowledge. Returns combined TokenUsage."""
         # Extract content text and comments separately
         content_text = ""
@@ -215,8 +304,9 @@ class ContentEnricher:
             web_context=web_context or "No web search results available.",
         )
 
+        system = enrichment_system_prompt or CONTENT_ENRICHMENT_SYSTEM
         completion = await self.client.complete(
-            system=CONTENT_ENRICHMENT_SYSTEM,
+            system=system,
             user=user_prompt,
             temperature=0.4,
         )
@@ -228,7 +318,7 @@ class ContentEnricher:
 
         result = self._parse_json_response(completion.text)
         if result is None:
-            print(f"Warning: could not parse enrichment response for {item.id}, skipping enrichment")
+            logger.warning("Could not parse enrichment response for %s", item.id)
             return combined_usage
 
         # Combine structured sub-fields into per-language detailed_summary

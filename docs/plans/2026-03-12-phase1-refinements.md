@@ -518,9 +518,9 @@ rg "fetch:|dedup:|route:|enrich:|summarize:" data/logs/horizon-$(date +%Y-%m-%d)
    - **config.example.json 同步**：与 `config.json` 的 group 配置一致
 
 ## 状态
-- [ ] Phase 0: 数据模型 + RSS 源扩展
-- [ ] Phase 1: 同仓库更新合并
-- [ ] Phase 2: 定制化 scoring + enrichment prompt 文件
-- [ ] Phase 3: Enrichment 模式分流
-- [ ] Phase 4: 统一日志系统
-- [ ] Phase 5: 验证与审阅
+- [x] Phase 0: 数据模型 + RSS 源扩展
+- [x] Phase 1: 同仓库更新合并
+- [x] Phase 2: 定制化 scoring + enrichment prompt 文件
+- [x] Phase 3: Enrichment 模式分流
+- [x] Phase 4: 统一日志系统
+- [x] Phase 5: 验证与审阅

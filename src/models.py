@@ -184,6 +184,8 @@ class GroupConfig(BaseModel):
     categories: List[str] = Field(default_factory=list)
     scoring: ScoringConfig = Field(default_factory=ScoringConfig)
     summary: SummaryGroupConfig = Field(default_factory=SummaryGroupConfig)
+    enrichment_mode: str = "full"
+    enrichment_prompt_file: Optional[str] = None
 
 
 class Config(BaseModel):
