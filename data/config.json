@@ -21,8 +21,14 @@
       },
       {
         "type": "repo_releases",
-        "owner": "vllm-project",
-        "repo": "vllm",
+        "owner": "openai",
+        "repo": "codex",
+        "enabled": true
+      },
+      {
+        "type": "repo_releases",
+        "owner": "anthropics",
+        "repo": "claude-code",
         "enabled": true
       },
       {
@@ -71,6 +77,12 @@
       {
         "name": "Superpowers Updates",
         "url": "https://github.com/obra/superpowers/commits.atom",
+        "enabled": true,
+        "category": "github-updates"
+      },
+      {
+        "name": "Cursor Updates",
+        "url": "https://www.any-feeds.com/api/users/corn58892/feed.xml",
         "enabled": true,
         "category": "github-updates"
       },
