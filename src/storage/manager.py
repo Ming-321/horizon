@@ -64,6 +64,20 @@ class StorageManager:
             subscribers.remove(email_addr)
             self._save_subscribers(subscribers)
 
+    def save_brief(self, date: str, markdown: str) -> Path:
+        """Save concise brief Markdown summary."""
+        path = self.summaries_dir / f"horizon-{date}-brief.md"
+        path.write_text(markdown, encoding="utf-8")
+        return path
+
+    def save_html(self, date: str, html: str) -> Path:
+        """Save detailed HTML report."""
+        html_dir = self.data_dir / "html"
+        html_dir.mkdir(exist_ok=True)
+        path = html_dir / f"horizon-{date}.html"
+        path.write_text(html, encoding="utf-8")
+        return path
+
     def _save_subscribers(self, subscribers: list):
         """Helper to save subscribers list."""
         subscribers_path = self.data_dir / "subscribers.json"

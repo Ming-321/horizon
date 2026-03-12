@@ -91,50 +91,19 @@ def main():
 
 
 def print_config_template():
-    """Print configuration template."""
-    template = """
-{
-  "version": "1.0",
-  "ai": {
-    "provider": "anthropic",
-    "model": "claude-sonnet-4.5-20250929",
-    "api_key_env": "ANTHROPIC_API_KEY",
-    "temperature": 0.3,
-    "max_tokens": 4096
-  },
-  "sources": {
-    "github": [
-      {
-        "type": "user_events",
-        "username": "torvalds",
-        "enabled": true
-      }
-    ],
-    "hackernews": {
-      "enabled": true,
-      "fetch_top_stories": 30,
-      "min_score": 100
-    },
-    "rss": [
-      {
-        "name": "Example Blog",
-        "url": "https://example.com/feed.xml",
-        "enabled": true,
-        "category": "software-engineering"
-      }
-    ]
-  },
-  "filtering": {
-    "ai_score_threshold": 7.0,
-    "time_window_hours": 24
-  }
-}
-
-Also create a .env file with:
-ANTHROPIC_API_KEY=your_api_key_here
-GITHUB_TOKEN=your_github_token_here (optional but recommended)
-"""
-    console.print(template)
+    """Print configuration template from config.example.json."""
+    example_path = Path("data/config.example.json")
+    if example_path.exists():
+        console.print(example_path.read_text(encoding="utf-8"))
+    else:
+        console.print("[yellow]data/config.example.json not found.[/yellow]")
+    console.print(
+        "\nAlso create a .env file with:\n"
+        "ANTHROPIC_API_KEY=your_api_key_here\n"
+        "GITHUB_TOKEN=your_github_token_here (optional but recommended)\n"
+        "WXPUSHER_APP_TOKEN=your_wxpusher_token (optional)\n"
+        "WXPUSHER_UIDS=UID_xxx (optional)\n"
+    )
 
 
 if __name__ == "__main__":

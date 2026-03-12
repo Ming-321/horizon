@@ -201,6 +201,50 @@ class HorizonOrchestrator:
                     subject = f"Horizon Summary ({lang.upper()}) - {today}"
                     self.email_manager.send_daily_summary(summary, subject, subscribers)
 
+            brief_md = None
+            if self.config.output.brief.enabled:
+                try:
+                    from .renderers.brief import BriefRenderer
+                    brief_renderer = BriefRenderer(top_n=self.config.output.brief.top_n)
+                    brief_md = brief_renderer.render(grouped_for_summary, today)
+                    brief_path = self.storage.save_brief(today, brief_md)
+                    logger.info("brief: saved to %s", brief_path)
+                    self.console.print(f"\N{NEWSPAPER} Saved brief summary to: {brief_path}\n")
+                except Exception as e:
+                    logger.warning("brief output failed: %s", e)
+                    self.console.print(f"[yellow]brief output failed: {e}[/yellow]\n")
+
+            if self.config.notifications.wxpusher.enabled:
+                try:
+                    import markdown as md_lib
+                    from .renderers.brief import BriefRenderer
+                    from .services.wxpusher import WxPusherService
+                    if brief_md is None:
+                        brief_renderer = BriefRenderer(top_n=self.config.output.brief.top_n)
+                        brief_md = brief_renderer.render(grouped_for_summary, today)
+                    wxpusher = WxPusherService(self.config.notifications.wxpusher)
+                    brief_html = md_lib.markdown(brief_md)
+                    summary_title = f"Horizon 每日速递 - {today}"
+                    if wxpusher.push(brief_html, summary=summary_title):
+                        self.console.print(f"\N{BELL} Pushed brief to wxpusher\n")
+                    else:
+                        self.console.print("[yellow]wxpusher push failed[/yellow]\n")
+                except Exception as e:
+                    logger.warning("wxpusher push failed: %s", e)
+                    self.console.print(f"[yellow]wxpusher push error: {e}[/yellow]\n")
+
+            if self.config.output.html.enabled:
+                try:
+                    from .renderers.html_detail import HtmlDetailRenderer
+                    html_renderer = HtmlDetailRenderer()
+                    html_content = html_renderer.render(grouped_for_summary, today, len(all_items))
+                    html_path = self.storage.save_html(today, html_content)
+                    logger.info("html: saved to %s", html_path)
+                    self.console.print(f"\N{GLOBE WITH MERIDIANS} Saved HTML report to: {html_path}\n")
+                except Exception as e:
+                    logger.warning("html output failed: %s", e)
+                    self.console.print(f"[yellow]html output failed: {e}[/yellow]\n")
+
             self.console.print(f"\N{BAR CHART} {tracker.summary()}")
             self.console.print("[bold green]\N{WHITE HEAVY CHECK MARK} Horizon completed successfully![/bold green]")
 

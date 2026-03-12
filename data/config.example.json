@@ -114,5 +114,12 @@
       "enrichment_mode": "full",
       "enrichment_prompt_file": "enrichment_github_trending.txt"
     }
-  ]
+  ],
+  "output": {
+    "brief": { "enabled": true, "top_n": 10 },
+    "html": { "enabled": true, "serve_port": 8080 }
+  },
+  "notifications": {
+    "wxpusher": { "enabled": false }
+  }
 }

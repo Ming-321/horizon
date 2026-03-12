@@ -188,6 +188,37 @@ class GroupConfig(BaseModel):
     enrichment_prompt_file: Optional[str] = None
 
 
+class BriefConfig(BaseModel):
+    """Brief (concise) output configuration."""
+    enabled: bool = False
+    top_n: int = 10
+
+
+class HtmlConfig(BaseModel):
+    """HTML detail output configuration."""
+    enabled: bool = False
+    serve_port: int = 8080
+
+
+class OutputConfig(BaseModel):
+    """Output channels configuration."""
+    brief: BriefConfig = Field(default_factory=BriefConfig)
+    html: HtmlConfig = Field(default_factory=HtmlConfig)
+
+
+class WxPusherConfig(BaseModel):
+    """WxPusher notification configuration."""
+    enabled: bool = False
+    app_token_env: str = "WXPUSHER_APP_TOKEN"
+    uids_env: str = "WXPUSHER_UIDS"
+    topic_ids_env: str = "WXPUSHER_TOPIC_IDS"
+
+
+class NotificationsConfig(BaseModel):
+    """Notification channels configuration."""
+    wxpusher: WxPusherConfig = Field(default_factory=WxPusherConfig)
+
+
 class Config(BaseModel):
     """Main configuration model."""
 
@@ -197,3 +228,5 @@ class Config(BaseModel):
     filtering: FilteringConfig
     email: Optional[EmailConfig] = None
     groups: List[GroupConfig] = Field(default_factory=list)
+    output: OutputConfig = Field(default_factory=OutputConfig)
+    notifications: NotificationsConfig = Field(default_factory=NotificationsConfig)

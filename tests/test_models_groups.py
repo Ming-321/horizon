@@ -7,6 +7,7 @@ from src.models import (
     Config, ContentItem, GroupConfig, ScoringConfig, SummaryGroupConfig,
     SourceType, HackerNewsConfig, TelegramChannelConfig, RedditSubredditConfig,
     RedditUserConfig, GitHubSourceConfig, RSSSourceConfig,
+    BriefConfig, HtmlConfig, OutputConfig, WxPusherConfig, NotificationsConfig,
 )
 
 
@@ -104,6 +105,60 @@ def test_config_example_loads():
     raw = json.loads(config_path.read_text())
     config = Config(**raw)
     assert len(config.groups) >= 1
+
+
+def test_brief_config_defaults():
+    c = BriefConfig()
+    assert c.enabled is False
+    assert c.top_n == 10
+
+
+def test_html_config_defaults():
+    c = HtmlConfig()
+    assert c.enabled is False
+    assert c.serve_port == 8080
+
+
+def test_output_config_defaults():
+    c = OutputConfig()
+    assert c.brief.enabled is False
+    assert c.html.enabled is False
+
+
+def test_wxpusher_config_defaults():
+    c = WxPusherConfig()
+    assert c.enabled is False
+    assert c.app_token_env == "WXPUSHER_APP_TOKEN"
+    assert c.uids_env == "WXPUSHER_UIDS"
+    assert c.topic_ids_env == "WXPUSHER_TOPIC_IDS"
+
+
+def test_notifications_config_defaults():
+    c = NotificationsConfig()
+    assert c.wxpusher.enabled is False
+
+
+def test_config_output_and_notifications_defaults():
+    raw = {
+        "ai": {"provider": "openai", "model": "gpt-4", "api_key_env": "KEY"},
+        "sources": {},
+        "filtering": {"ai_score_threshold": 7.0},
+    }
+    config = Config(**raw)
+    assert config.output.brief.enabled is False
+    assert config.output.html.enabled is False
+    assert config.notifications.wxpusher.enabled is False
+
+
+def test_config_loads_output_and_notifications():
+    config_path = Path("data/config.json")
+    raw = json.loads(config_path.read_text())
+    config = Config(**raw)
+    assert config.output.brief.enabled is True
+    assert config.output.brief.top_n == 10
+    assert config.output.html.enabled is True
+    assert config.output.html.serve_port == 8080
+    assert config.notifications.wxpusher.enabled is False
 
 
 def test_source_entry_defaults():
