@@ -10,10 +10,10 @@ Given a GitHub trending project, produce an enrichment analysis with the followi
 
 Output format: JSON object with fields:
 {
-  "background": "2-3 sentence project context and problem statement",
-  "detailed_summary": "English project recommendation (3-5 sentences covering features, use cases, and verdict)",
+  "background": "3-5 sentence project context, problem statement, and how it compares to prior solutions",
+  "detailed_summary": "English project recommendation (5-8 sentences covering features, use cases, limitations, and verdict)",
   "detailed_summary_zh": "Chinese project recommendation (same content as detailed_summary)",
-  "key_points": ["point1", "point2", "point3"]
+  "key_points": ["point1", "point2", "point3", "point4"]
 }
 
 Focus on practical value over hype. Be specific about what the project does and who benefits.

@@ -1,9 +1,13 @@
 """Storage manager for configuration and state persistence."""
 
 import json
+import logging
 from pathlib import Path
+from typing import Dict, List, Optional
 
-from ..models import Config
+from ..models import Config, ContentItem
+
+logger = logging.getLogger(__name__)
 
 
 class StorageManager:
@@ -77,6 +81,50 @@ class StorageManager:
         path = html_dir / f"horizon-{date}.html"
         path.write_text(html, encoding="utf-8")
         return path
+
+    # ------------------------------------------------------------------
+    # Intermediate cache (grouped items after scoring + enrichment)
+    # ------------------------------------------------------------------
+
+    def _cache_dir(self) -> Path:
+        d = self.data_dir / "cache"
+        d.mkdir(exist_ok=True)
+        return d
+
+    def save_grouped_items(
+        self,
+        date: str,
+        grouped: Dict[str, List[ContentItem]],
+        total_fetched: int,
+    ) -> Path:
+        """Persist enriched grouped items so later steps can skip fetch/score/enrich."""
+        payload = {
+            "date": date,
+            "total_fetched": total_fetched,
+            "groups": {
+                name: [item.model_dump(mode="json") for item in items]
+                for name, items in grouped.items()
+            },
+        }
+        path = self._cache_dir() / f"{date}-items.json"
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        logger.info("cache: saved %d groups to %s", len(grouped), path)
+        return path
+
+    def load_grouped_items(self, date: str) -> Optional[Dict]:
+        """Load cached grouped items. Returns dict with keys 'groups' and 'total_fetched', or None."""
+        path = self._cache_dir() / f"{date}-items.json"
+        if not path.exists():
+            return None
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            groups: Dict[str, List[ContentItem]] = {}
+            for name, items_raw in raw["groups"].items():
+                groups[name] = [ContentItem.model_validate(d) for d in items_raw]
+            return {"groups": groups, "total_fetched": raw["total_fetched"]}
+        except Exception as e:
+            logger.warning("cache: failed to load %s: %s", path, e)
+            return None
 
     def _save_subscribers(self, subscribers: list):
         """Helper to save subscribers list."""

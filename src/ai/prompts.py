@@ -136,13 +136,13 @@ Provide EACH text field in BOTH English and Chinese. Use the following key namin
 Field definitions:
 0. **title** (one short phrase, ≤15 words): A clear, accurate headline for the news item.
 
-1. **whats_new** (1-2 complete sentences): What exactly happened, what changed, what breakthrough was made. Be specific — mention names, versions, numbers, dates when available.
+1. **whats_new** (2-3 complete sentences): What exactly happened, what changed, what breakthrough was made. Be specific — mention names, versions, numbers, dates when available. Cover the core facts thoroughly so the reader doesn't need to click through.
 
-2. **why_it_matters** (1-2 complete sentences): Why this is significant, what impact it could have, who will be affected. Connect to the broader ecosystem or industry trends.
+2. **why_it_matters** (3-4 complete sentences): Why this is significant, what impact it could have, who will be affected. Connect to the broader ecosystem or industry trends. Discuss both immediate and potential longer-term implications. Compare with existing alternatives or prior state-of-the-art when relevant.
 
-3. **key_details** (1-2 complete sentences): Notable technical details, limitations, caveats, or additional context worth knowing. Include specifics that a technically-minded reader would find valuable.
+3. **key_details** (2-4 complete sentences): Notable technical details, limitations, caveats, or additional context worth knowing. Include specifics that a technically-minded reader would find valuable — performance numbers, compatibility notes, pricing changes, known issues, or deployment requirements.
 
-4. **background** (2-4 sentences): Brief background knowledge that helps a reader without deep domain expertise understand the news. Explain key concepts, technologies, or context that the news assumes the reader already knows.
+4. **background** (3-5 sentences): Background knowledge that helps a reader without deep domain expertise understand the news. Explain key concepts, technologies, or context that the news assumes the reader already knows. Briefly trace the history or evolution of the topic if it adds clarity.
 
 5. **community_discussion** (1-3 sentences): If community comments are provided, summarize the overall sentiment and key viewpoints from the discussion — agreements, disagreements, concerns, additional insights, or notable counterarguments. If no comments are provided, return an empty string.
 
@@ -178,14 +178,14 @@ Respond with valid JSON only. Each _en field must be in English; each _zh field 
 {{
   "title_en": "<short headline in English, ≤15 words>",
   "title_zh": "<short headline in Chinese, ≤15 words>",
-  "whats_new_en": "<1-2 sentences in English>",
-  "whats_new_zh": "<1-2 sentences in Chinese>",
-  "why_it_matters_en": "<1-2 sentences in English>",
-  "why_it_matters_zh": "<1-2 sentences in Chinese>",
-  "key_details_en": "<1-2 sentences in English>",
-  "key_details_zh": "<1-2 sentences in Chinese>",
-  "background_en": "<2-4 sentences in English, or empty string>",
-  "background_zh": "<2-4 sentences in Chinese, or empty string>",
+  "whats_new_en": "<2-3 sentences in English>",
+  "whats_new_zh": "<2-3 sentences in Chinese>",
+  "why_it_matters_en": "<3-4 sentences in English>",
+  "why_it_matters_zh": "<3-4 sentences in Chinese>",
+  "key_details_en": "<2-4 sentences in English>",
+  "key_details_zh": "<2-4 sentences in Chinese>",
+  "background_en": "<3-5 sentences in English, or empty string>",
+  "background_zh": "<3-5 sentences in Chinese, or empty string>",
   "community_discussion_en": "<1-3 sentences in English, or empty string>",
   "community_discussion_zh": "<1-3 sentences in Chinese, or empty string>",
   "sources": ["<url from search results>", "..."]

@@ -45,8 +45,22 @@ class HorizonOrchestrator:
         self.console = Console()
         self.email_manager = EmailManager(config.email, console=self.console) if config.email else None
 
-    async def run(self, force_hours: int = None) -> None:
+    async def run(self, force_hours: int = None, from_cache: bool = False) -> None:
         self.console.print("[bold cyan]\N{SUNRISE OVER MOUNTAINS} Horizon - Starting aggregation...[/bold cyan]\n")
+
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+
+        if from_cache:
+            cached = self.storage.load_grouped_items(today)
+            if cached:
+                self.console.print(f"[bold green]\N{CLOCKWISE RIGHTWARDS AND LEFTWARDS OPEN CIRCLE ARROWS} Loading from cache ({today})[/bold green]\n")
+                grouped_for_summary = cached["groups"]
+                total_fetched = cached["total_fetched"]
+                total_items = sum(len(v) for v in grouped_for_summary.values())
+                self.console.print(f"   {len(grouped_for_summary)} groups, {total_items} items (from cache)\n")
+                return await self._render_outputs(grouped_for_summary, today, total_fetched)
+            else:
+                self.console.print("[yellow]No cache found for today, running full pipeline...[/yellow]\n")
 
         if self.email_manager and self.config.email and self.config.email.enabled:
             self.console.print("\N{ENVELOPE} Checking for new email subscriptions...")
@@ -181,69 +195,9 @@ class HorizonOrchestrator:
                 if bucket.items:
                     grouped_for_summary[name] = bucket.items
 
-            today = datetime.utcnow().strftime("%Y-%m-%d")
-            for lang in self.config.ai.languages:
-                logger.info("summarize: starting for %s", lang)
-                t0 = time.monotonic()
-                summary = await self._generate_summary(
-                    grouped_for_summary, today, len(all_items), language=lang,
-                )
-                logger.info("summarize: completed for %s in %.1fs", lang, time.monotonic() - t0)
-
-                summary_path = self.storage.save_daily_summary(today, summary, language=lang)
-                self.console.print(f"\N{FLOPPY DISK} Saved {lang.upper()} summary to: {summary_path}\n")
-
-                self._copy_to_jekyll(today, lang, summary)
-
-                if self.email_manager and self.config.email and self.config.email.enabled:
-                    self.console.print(f"\N{ENVELOPE} Sending {lang.upper()} email summary...")
-                    subscribers = self.storage.load_subscribers()
-                    subject = f"Horizon Summary ({lang.upper()}) - {today}"
-                    self.email_manager.send_daily_summary(summary, subject, subscribers)
-
-            brief_md = None
-            if self.config.output.brief.enabled:
-                try:
-                    from .renderers.brief import BriefRenderer
-                    brief_renderer = BriefRenderer(top_n=self.config.output.brief.top_n)
-                    brief_md = brief_renderer.render(grouped_for_summary, today)
-                    brief_path = self.storage.save_brief(today, brief_md)
-                    logger.info("brief: saved to %s", brief_path)
-                    self.console.print(f"\N{NEWSPAPER} Saved brief summary to: {brief_path}\n")
-                except Exception as e:
-                    logger.warning("brief output failed: %s", e)
-                    self.console.print(f"[yellow]brief output failed: {e}[/yellow]\n")
-
-            if self.config.notifications.wxpusher.enabled:
-                try:
-                    import markdown as md_lib
-                    from .renderers.brief import BriefRenderer
-                    from .services.wxpusher import WxPusherService
-                    if brief_md is None:
-                        brief_renderer = BriefRenderer(top_n=self.config.output.brief.top_n)
-                        brief_md = brief_renderer.render(grouped_for_summary, today)
-                    wxpusher = WxPusherService(self.config.notifications.wxpusher)
-                    brief_html = md_lib.markdown(brief_md)
-                    summary_title = f"Horizon 每日速递 - {today}"
-                    if wxpusher.push(brief_html, summary=summary_title):
-                        self.console.print(f"\N{BELL} Pushed brief to wxpusher\n")
-                    else:
-                        self.console.print("[yellow]wxpusher push failed[/yellow]\n")
-                except Exception as e:
-                    logger.warning("wxpusher push failed: %s", e)
-                    self.console.print(f"[yellow]wxpusher push error: {e}[/yellow]\n")
-
-            if self.config.output.html.enabled:
-                try:
-                    from .renderers.html_detail import HtmlDetailRenderer
-                    html_renderer = HtmlDetailRenderer()
-                    html_content = html_renderer.render(grouped_for_summary, today, len(all_items))
-                    html_path = self.storage.save_html(today, html_content)
-                    logger.info("html: saved to %s", html_path)
-                    self.console.print(f"\N{GLOBE WITH MERIDIANS} Saved HTML report to: {html_path}\n")
-                except Exception as e:
-                    logger.warning("html output failed: %s", e)
-                    self.console.print(f"[yellow]html output failed: {e}[/yellow]\n")
+            cache_path = self.storage.save_grouped_items(today, grouped_for_summary, len(all_items))
+            self.console.print(f"\N{FLOPPY DISK} Cached enriched items to: {cache_path}\n")
+            await self._render_outputs(grouped_for_summary, today, len(all_items))
 
             self.console.print(f"\N{BAR CHART} {tracker.summary()}")
             self.console.print("[bold green]\N{WHITE HEAVY CHECK MARK} Horizon completed successfully![/bold green]")
@@ -251,6 +205,76 @@ class HorizonOrchestrator:
         except Exception as e:
             self.console.print(f"[bold red]\N{CROSS MARK} Error: {e}[/bold red]")
             raise
+
+    async def _render_outputs(
+        self,
+        grouped_for_summary: Dict[str, List[ContentItem]],
+        today: str,
+        total_fetched: int,
+    ) -> None:
+        """Generate summaries, brief, HTML, and notifications from enriched items."""
+        for lang in self.config.ai.languages:
+            logger.info("summarize: starting for %s", lang)
+            t0 = time.monotonic()
+            summary = await self._generate_summary(
+                grouped_for_summary, today, total_fetched, language=lang,
+            )
+            logger.info("summarize: completed for %s in %.1fs", lang, time.monotonic() - t0)
+
+            summary_path = self.storage.save_daily_summary(today, summary, language=lang)
+            self.console.print(f"\N{FLOPPY DISK} Saved {lang.upper()} summary to: {summary_path}\n")
+
+            self._copy_to_jekyll(today, lang, summary)
+
+            if self.email_manager and self.config.email and self.config.email.enabled:
+                self.console.print(f"\N{ENVELOPE} Sending {lang.upper()} email summary...")
+                subscribers = self.storage.load_subscribers()
+                subject = f"Horizon Summary ({lang.upper()}) - {today}"
+                self.email_manager.send_daily_summary(summary, subject, subscribers)
+
+        brief_md = None
+        if self.config.output.brief.enabled:
+            try:
+                from .renderers.brief import BriefRenderer
+                brief_renderer = BriefRenderer(top_n=self.config.output.brief.top_n)
+                brief_md = brief_renderer.render(grouped_for_summary, today)
+                brief_path = self.storage.save_brief(today, brief_md)
+                logger.info("brief: saved to %s", brief_path)
+                self.console.print(f"\N{NEWSPAPER} Saved brief summary to: {brief_path}\n")
+            except Exception as e:
+                logger.warning("brief output failed: %s", e)
+                self.console.print(f"[yellow]brief output failed: {e}[/yellow]\n")
+
+        if self.config.notifications.wxpusher.enabled:
+            try:
+                import markdown as md_lib
+                from .renderers.brief import BriefRenderer
+                from .services.wxpusher import WxPusherService
+                if brief_md is None:
+                    brief_renderer = BriefRenderer(top_n=self.config.output.brief.top_n)
+                    brief_md = brief_renderer.render(grouped_for_summary, today)
+                wxpusher = WxPusherService(self.config.notifications.wxpusher)
+                brief_html = md_lib.markdown(brief_md)
+                summary_title = f"Horizon 每日速递 - {today}"
+                if wxpusher.push(brief_html, summary=summary_title):
+                    self.console.print(f"\N{BELL} Pushed brief to wxpusher\n")
+                else:
+                    self.console.print("[yellow]wxpusher push failed[/yellow]\n")
+            except Exception as e:
+                logger.warning("wxpusher push failed: %s", e)
+                self.console.print(f"[yellow]wxpusher push error: {e}[/yellow]\n")
+
+        if self.config.output.html.enabled:
+            try:
+                from .renderers.html_detail import HtmlDetailRenderer
+                html_renderer = HtmlDetailRenderer()
+                html_content = html_renderer.render(grouped_for_summary, today, total_fetched)
+                html_path = self.storage.save_html(today, html_content)
+                logger.info("html: saved to %s", html_path)
+                self.console.print(f"\N{GLOBE WITH MERIDIANS} Saved HTML report to: {html_path}\n")
+            except Exception as e:
+                logger.warning("html output failed: %s", e)
+                self.console.print(f"[yellow]html output failed: {e}[/yellow]\n")
 
     # ------------------------------------------------------------------
     # Group routing

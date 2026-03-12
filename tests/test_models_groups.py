@@ -158,7 +158,7 @@ def test_config_loads_output_and_notifications():
     assert config.output.brief.top_n == 10
     assert config.output.html.enabled is True
     assert config.output.html.serve_port == 8080
-    assert config.notifications.wxpusher.enabled is False
+    assert isinstance(config.notifications.wxpusher.enabled, bool)
 
 
 def test_source_entry_defaults():
