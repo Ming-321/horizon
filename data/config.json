@@ -42,6 +42,12 @@
         "owner": "triton-lang",
         "repo": "triton",
         "enabled": true
+      },
+      {
+        "type": "repo_releases",
+        "owner": "upstash",
+        "repo": "context7",
+        "enabled": true
       }
     ],
     "hackernews": {
