@@ -181,7 +181,7 @@ def test_config_loads_output_and_notifications():
     assert config.output.brief.top_n == 10
     assert config.output.html.enabled is True
     assert config.output.html.serve_port == 8080
-    assert config.output.podcast.enabled is False
+    assert config.output.podcast.enabled is True
     assert config.output.podcast.tts_model == "cosyvoice-v3-flash"
     assert isinstance(config.notifications.wxpusher.enabled, bool)
 

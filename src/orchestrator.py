@@ -483,7 +483,7 @@ class HorizonOrchestrator:
 
         This is a stable stage entry point for integrations such as MCP.
         """
-        headers = {"User-Agent": "Mozilla/5.0 (compatible; Horizon/1.0; +https://github.com/Thysrael/Horizon)"}
+        headers = {"User-Agent": "Mozilla/5.0 (compatible; Horizon/1.0; +https://github.com/Ming-321/horizon)"}
         async with httpx.AsyncClient(timeout=30.0, headers=headers) as client:
             tasks = []
 

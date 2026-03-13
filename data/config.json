@@ -223,7 +223,7 @@
     "brief": { "enabled": true, "top_n": 10 },
     "html": { "enabled": true, "serve_port": 8080 },
     "podcast": {
-      "enabled": false,
+      "enabled": true,
       "tts_model": "cosyvoice-v3-flash",
       "tts_endpoint": "wss://dashscope-intl.aliyuncs.com/api-ws/v1/inference",
       "voice_a": "longanyang",
