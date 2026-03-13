@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Horizon 科技日报</title>
+    <link>https://ming-321.github.io/horizon</link>
+    <description>AI 生成的每日科技新闻播客</description>
+    <language>zh-cn</language>
+    <generator>Horizon Podcast Pipeline</generator>
+    <item>
+      <title>Horizon 科技日报 - 2026-03-12</title>
+      <description>2026-03-12 每日科技新闻播客</description>
+      <enclosure url="https://github.com/Ming-321/horizon/releases/download/podcast-2026-03-12/horizon-2026-03-12.mp3" length="7069397" type="audio/mpeg" />
+      <guid>https://github.com/Ming-321/horizon/releases/download/podcast-2026-03-12/horizon-2026-03-12.mp3</guid>
+      <pubDate>Thu, 12 Mar 2026 07:00:00 +0800</pubDate>
+    </item>
+  </channel>
+</rss>
