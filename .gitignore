@@ -37,10 +37,14 @@ ENV/
 # Environment variables
 .env
 
-# Data files (keep structure, ignore content)
+# Data files (keep structure, ignore generated content)
 data/seen.json
 data/summaries/*.md
 data/subscribers.json
+data/cache/
+data/html/
+data/podcasts/
+data/logs/
 
 
 # Logs
