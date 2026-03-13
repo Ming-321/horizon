@@ -126,6 +126,14 @@ class StorageManager:
             logger.warning("cache: failed to load %s: %s", path, e)
             return None
 
+    def save_podcast(self, date: str, audio_bytes: bytes) -> Path:
+        """Save podcast MP3 file, consistent with save_html/save_brief pattern."""
+        podcast_dir = self.data_dir / "podcasts"
+        podcast_dir.mkdir(exist_ok=True)
+        path = podcast_dir / f"horizon-{date}.mp3"
+        path.write_bytes(audio_bytes)
+        return path
+
     def _save_subscribers(self, subscribers: list):
         """Helper to save subscribers list."""
         subscribers_path = self.data_dir / "subscribers.json"

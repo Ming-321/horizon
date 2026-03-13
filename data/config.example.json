@@ -117,7 +117,18 @@
   ],
   "output": {
     "brief": { "enabled": true, "top_n": 10 },
-    "html": { "enabled": true, "serve_port": 8080 }
+    "html": { "enabled": true, "serve_port": 8080 },
+    "podcast": {
+      "enabled": false,
+      "tts_model": "cosyvoice-v3-flash",
+      "tts_endpoint": "wss://dashscope-intl.aliyuncs.com/api-ws/v1/inference",
+      "voice_a": "longanyang",
+      "voice_b": "longanhuan",
+      "max_script_chars": 3000,
+      "items_per_group": 3,
+      "output_dir": "data/podcasts",
+      "prompt_file": "podcast_dialogue.txt"
+    }
   },
   "notifications": {
     "wxpusher": { "enabled": false }

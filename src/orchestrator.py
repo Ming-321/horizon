@@ -48,7 +48,7 @@ class HorizonOrchestrator:
     async def run(self, force_hours: int = None, from_cache: bool = False) -> None:
         self.console.print("[bold cyan]\N{SUNRISE OVER MOUNTAINS} Horizon - Starting aggregation...[/bold cyan]\n")
 
-        today = datetime.utcnow().strftime("%Y-%m-%d")
+        today = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
 
         if from_cache:
             cached = self.storage.load_grouped_items(today)
@@ -275,6 +275,21 @@ class HorizonOrchestrator:
             except Exception as e:
                 logger.warning("html output failed: %s", e)
                 self.console.print(f"[yellow]html output failed: {e}[/yellow]\n")
+
+        if self.config.output.podcast.enabled:
+            try:
+                from .services.podcast import PodcastPipeline
+                ai_client_podcast = create_ai_client(self.config.ai)
+                pipeline = PodcastPipeline(self.config.output.podcast, ai_client_podcast)
+                audio_path = await pipeline.generate(grouped_for_summary, today)
+                if audio_path:
+                    logger.info("podcast: saved to %s", audio_path)
+                    self.console.print(f"\N{STUDIO MICROPHONE} Podcast saved to: {audio_path}\n")
+                else:
+                    self.console.print("[yellow]Podcast generation returned no output[/yellow]\n")
+            except Exception as e:
+                logger.warning("podcast generation failed: %s", e)
+                self.console.print(f"[yellow]Podcast generation failed: {e}[/yellow]\n")
 
     # ------------------------------------------------------------------
     # Group routing

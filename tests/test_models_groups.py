@@ -7,7 +7,8 @@ from src.models import (
     Config, ContentItem, GroupConfig, ScoringConfig, SummaryGroupConfig,
     SourceType, HackerNewsConfig, TelegramChannelConfig, RedditSubredditConfig,
     RedditUserConfig, GitHubSourceConfig, RSSSourceConfig,
-    BriefConfig, HtmlConfig, OutputConfig, WxPusherConfig, NotificationsConfig,
+    BriefConfig, HtmlConfig, PodcastConfig, OutputConfig, WxPusherConfig,
+    NotificationsConfig,
 )
 
 
@@ -119,10 +120,24 @@ def test_html_config_defaults():
     assert c.serve_port == 8080
 
 
+def test_podcast_config_defaults():
+    c = PodcastConfig()
+    assert c.enabled is False
+    assert c.tts_model == "cosyvoice-v3-flash"
+    assert c.tts_endpoint == "wss://dashscope-intl.aliyuncs.com/api-ws/v1/inference"
+    assert c.voice_a == "longanyang"
+    assert c.voice_b == "longanhuan"
+    assert c.max_script_chars == 3000
+    assert c.items_per_group == 3
+    assert c.output_dir == "data/podcasts"
+    assert c.prompt_file == "podcast_dialogue.txt"
+
+
 def test_output_config_defaults():
     c = OutputConfig()
     assert c.brief.enabled is False
     assert c.html.enabled is False
+    assert c.podcast.enabled is False
 
 
 def test_wxpusher_config_defaults():
@@ -147,6 +162,7 @@ def test_config_output_and_notifications_defaults():
     config = Config(**raw)
     assert config.output.brief.enabled is False
     assert config.output.html.enabled is False
+    assert config.output.podcast.enabled is False
     assert config.notifications.wxpusher.enabled is False
 
 
@@ -158,6 +174,8 @@ def test_config_loads_output_and_notifications():
     assert config.output.brief.top_n == 10
     assert config.output.html.enabled is True
     assert config.output.html.serve_port == 8080
+    assert config.output.podcast.enabled is False
+    assert config.output.podcast.tts_model == "cosyvoice-v3-flash"
     assert isinstance(config.notifications.wxpusher.enabled, bool)
 
 

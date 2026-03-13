@@ -174,3 +174,30 @@ def test_all_disabled_no_side_effects(tmp_path):
     assert not (storage.summaries_dir / "horizon-2026-03-12-brief.md").exists()
     html_dir = Path(str(tmp_path / "data")) / "html"
     assert not html_dir.exists() or not list(html_dir.iterdir())
+
+
+def test_podcast_disabled_no_side_effects(tmp_path):
+    """podcast.enabled=false → no podcast artifacts."""
+    cfg = _minimal_config(
+        output={
+            "brief": {"enabled": False},
+            "html": {"enabled": False},
+            "podcast": {"enabled": False},
+        },
+        notifications={"wxpusher": {"enabled": False}},
+    )
+    items = _make_items()
+    storage = _run_orchestrator(cfg, items, tmp_path)
+
+    podcast_dir = Path(str(tmp_path / "data")) / "podcasts"
+    assert not podcast_dir.exists() or not list(podcast_dir.iterdir())
+
+
+def test_podcast_config_backward_compat(tmp_path):
+    """Config without podcast key still loads (backward compat)."""
+    cfg = _minimal_config(
+        output={"brief": {"enabled": False}, "html": {"enabled": False}},
+        notifications={"wxpusher": {"enabled": False}},
+    )
+    config = Config(**cfg)
+    assert config.output.podcast.enabled is False

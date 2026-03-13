@@ -200,10 +200,24 @@ class HtmlConfig(BaseModel):
     serve_port: int = 8080
 
 
+class PodcastConfig(BaseModel):
+    """Podcast generation configuration."""
+    enabled: bool = False
+    tts_model: str = "cosyvoice-v3-flash"
+    tts_endpoint: str = "wss://dashscope-intl.aliyuncs.com/api-ws/v1/inference"
+    voice_a: str = "longanyang"
+    voice_b: str = "longanhuan"
+    max_script_chars: int = 3000
+    items_per_group: int = 3
+    output_dir: str = "data/podcasts"
+    prompt_file: str = "podcast_dialogue.txt"
+
+
 class OutputConfig(BaseModel):
     """Output channels configuration."""
     brief: BriefConfig = Field(default_factory=BriefConfig)
     html: HtmlConfig = Field(default_factory=HtmlConfig)
+    podcast: PodcastConfig = Field(default_factory=PodcastConfig)
 
 
 class WxPusherConfig(BaseModel):
