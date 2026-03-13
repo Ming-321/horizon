@@ -33,9 +33,11 @@ class ScriptGenerator:
         """Call LLM to produce a dialogue script from news items."""
         user_msg = self._build_user_message(items, date)
         try:
+            max_tok = max(8192, self.max_chars * 2)
             completion: CompletionResult = await self.ai_client.complete(
                 system=self.prompt_text,
                 user=user_msg,
+                max_tokens=max_tok,
             )
             data = json.loads(completion.text)
             script = data["script"]
@@ -44,7 +46,9 @@ class ScriptGenerator:
             return []
 
         if not self._validate_script(script):
-            logger.warning("Script validation failed")
+            total = sum(len(s.get("text", "")) for s in script if isinstance(s, dict))
+            logger.warning("Script validation failed: %d segments, %d chars (limit 500-%d)",
+                           len(script), total, 8000)
             return []
         return script
 
