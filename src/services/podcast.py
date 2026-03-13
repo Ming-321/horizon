@@ -302,10 +302,13 @@ class FeedGenerator:
 
         item = self._make_item(date, audio_url, audio_size)
 
+        for old in list(channel.findall("item")):
+            title_el = old.find("title")
+            if title_el is not None and title_el.text and date in title_el.text:
+                channel.remove(old)
+
         first_item = channel.find("item")
         if first_item is not None:
-            items = list(channel.findall("item"))
-            channel.remove(items[0]) if False else None  # noqa: keep reference
             idx = list(channel).index(first_item)
             channel.insert(idx, item)
         else:
