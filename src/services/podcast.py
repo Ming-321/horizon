@@ -1,11 +1,15 @@
-"""Podcast generation pipeline: script → TTS → audio merge."""
+"""Podcast generation pipeline: script → TTS → audio merge → R2 upload → RSS feed."""
 
 import asyncio
 import json
 import logging
 import math
+import os
 import shutil
 import tempfile
+import xml.etree.ElementTree as ET
+from datetime import datetime, timezone, timedelta
+from email.utils import format_datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -164,6 +168,175 @@ class AudioMerger:
         return output
 
 
+class GitHubUploader:
+    """Upload podcast episodes via GitHub Releases API."""
+
+    GITHUB_API = "https://api.github.com"
+
+    def __init__(self, repo: str, pages_url: str):
+        self.repo = repo
+        self.pages_url = pages_url.rstrip("/")
+        self.token = os.environ.get("GITHUB_TOKEN", "")
+        if not self.token:
+            raise EnvironmentError("GITHUB_TOKEN not set")
+
+    async def create_release_and_upload(self, local_path: Path, tag: str) -> str:
+        """Create a GitHub release and upload the MP3 as an asset."""
+        import httpx
+
+        headers = {
+            "Authorization": f"token {self.token}",
+            "Accept": "application/vnd.github+json",
+        }
+
+        async with httpx.AsyncClient(timeout=120) as client:
+            release_resp = await client.post(
+                f"{self.GITHUB_API}/repos/{self.repo}/releases",
+                headers=headers,
+                json={"tag_name": tag, "name": tag, "body": f"Podcast episode {tag}"},
+            )
+
+            if release_resp.status_code == 422:
+                existing = await client.get(
+                    f"{self.GITHUB_API}/repos/{self.repo}/releases/tags/{tag}",
+                    headers=headers,
+                )
+                if existing.status_code != 200:
+                    raise RuntimeError(f"Failed to get existing release: {existing.text}")
+                release_data = existing.json()
+            elif release_resp.status_code not in (200, 201):
+                raise RuntimeError(f"Failed to create release: {release_resp.text}")
+            else:
+                release_data = release_resp.json()
+
+            upload_url = release_data["upload_url"].split("{")[0]
+            file_name = local_path.name
+            file_bytes = await asyncio.to_thread(local_path.read_bytes)
+
+            upload_resp = await client.post(
+                upload_url,
+                params={"name": file_name},
+                headers={**headers, "Content-Type": "application/octet-stream"},
+                content=file_bytes,
+            )
+            if upload_resp.status_code not in (200, 201):
+                raise RuntimeError(f"Failed to upload asset: {upload_resp.text}")
+
+            return upload_resp.json()["browser_download_url"]
+
+    def get_feed_path(self) -> Path:
+        """Return local path for feed.xml in docs/ directory."""
+        return Path("docs/podcast/feed.xml")
+
+    def get_feed_url(self) -> str:
+        return f"{self.pages_url}/podcast/feed.xml"
+
+
+class R2Uploader:
+    """Upload files to Cloudflare R2 via S3-compatible API."""
+
+    def __init__(self, bucket: str, endpoint: str, public_url: str):
+        self.bucket = bucket
+        self.endpoint = endpoint
+        self.public_url = public_url.rstrip("/")
+
+    def _get_client(self):
+        import boto3
+        return boto3.client(
+            "s3",
+            endpoint_url=self.endpoint,
+            aws_access_key_id=os.environ.get("R2_ACCESS_KEY_ID", ""),
+            aws_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY", ""),
+        )
+
+    async def upload(self, local_path: Path, remote_key: str,
+                     content_type: str = "application/octet-stream") -> str:
+        """Upload a file and return its public URL."""
+        client = self._get_client()
+        await asyncio.to_thread(
+            client.upload_file,
+            str(local_path), self.bucket, remote_key,
+            ExtraArgs={"ContentType": content_type},
+        )
+        return f"{self.public_url}/{remote_key}"
+
+    async def download_text(self, remote_key: str) -> Optional[str]:
+        """Download a text file from R2. Returns None if not found."""
+        client = self._get_client()
+        try:
+            resp = await asyncio.to_thread(
+                client.get_object, Bucket=self.bucket, Key=remote_key,
+            )
+            return resp["Body"].read().decode("utf-8")
+        except Exception:
+            return None
+
+
+class FeedGenerator:
+    """Generate and update Podcast RSS 2.0 XML feeds."""
+
+    ITUNES_NS = "http://www.itunes.com/dtds/podcast-1.0.dtd"
+
+    def __init__(self, title: str, description: str, public_url: str):
+        self.title = title
+        self.description = description
+        self.public_url = public_url.rstrip("/")
+
+    def update_feed(self, date: str, audio_url: str, audio_size: int,
+                    existing_xml: Optional[str] = None) -> str:
+        """Create or update the RSS feed with a new episode."""
+        if existing_xml:
+            try:
+                root = ET.fromstring(existing_xml)
+                channel = root.find("channel")
+            except ET.ParseError:
+                logger.warning("Failed to parse existing feed, creating new")
+                root, channel = self._new_feed()
+        else:
+            root, channel = self._new_feed()
+
+        item = self._make_item(date, audio_url, audio_size)
+
+        first_item = channel.find("item")
+        if first_item is not None:
+            items = list(channel.findall("item"))
+            channel.remove(items[0]) if False else None  # noqa: keep reference
+            idx = list(channel).index(first_item)
+            channel.insert(idx, item)
+        else:
+            channel.append(item)
+
+        ET.indent(root, space="  ")
+        xml_decl = '<?xml version="1.0" encoding="UTF-8"?>\n'
+        return xml_decl + ET.tostring(root, encoding="unicode")
+
+    def _new_feed(self):
+        root = ET.Element("rss", version="2.0")
+        root.set("xmlns:itunes", self.ITUNES_NS)
+        channel = ET.SubElement(root, "channel")
+        ET.SubElement(channel, "title").text = self.title
+        ET.SubElement(channel, "link").text = self.public_url
+        ET.SubElement(channel, "description").text = self.description
+        ET.SubElement(channel, "language").text = "zh-cn"
+        ET.SubElement(channel, "generator").text = "Horizon Podcast Pipeline"
+        return root, channel
+
+    def _make_item(self, date: str, audio_url: str, audio_size: int):
+        item = ET.Element("item")
+        ET.SubElement(item, "title").text = f"{self.title} - {date}"
+        ET.SubElement(item, "description").text = f"{date} 每日科技新闻播客"
+        enclosure = ET.SubElement(item, "enclosure")
+        enclosure.set("url", audio_url)
+        enclosure.set("length", str(audio_size))
+        enclosure.set("type", "audio/mpeg")
+        ET.SubElement(item, "guid").text = audio_url
+        pub_dt = datetime.strptime(date, "%Y-%m-%d").replace(
+            hour=7, tzinfo=timezone(timedelta(hours=8)),
+        )
+        ET.SubElement(item, "pubDate").text = format_datetime(pub_dt)
+        return item
+
+
 class PodcastPipeline:
     """Orchestrate the full podcast generation pipeline."""
 
@@ -216,6 +389,10 @@ class PodcastPipeline:
             output_path = output_dir / f"horizon-{date}.mp3"
 
             result = await AudioMerger.merge(segments, output_path)
+
+            if result and (self.config.github_repo or self.config.r2_bucket):
+                await self._upload_and_update_feed(result, date)
+
             return result
 
         except Exception as e:
@@ -224,6 +401,87 @@ class PodcastPipeline:
         finally:
             if work_dir and work_dir.exists():
                 shutil.rmtree(work_dir, ignore_errors=True)
+
+    async def _upload_and_update_feed(self, audio_path: Path, date: str) -> None:
+        """Upload MP3 and update RSS feed. Supports GitHub or R2 backends."""
+        try:
+            if self.config.github_repo:
+                await self._upload_github(audio_path, date)
+            elif self.config.r2_bucket:
+                await self._upload_r2(audio_path, date)
+        except Exception as e:
+            logger.warning("podcast: upload/feed failed: %s", e)
+
+    async def _upload_github(self, audio_path: Path, date: str) -> None:
+        gh = GitHubUploader(self.config.github_repo, self.config.github_pages_url)
+        tag = f"podcast-{date}"
+        audio_url = await gh.create_release_and_upload(audio_path, tag)
+        logger.info("podcast: uploaded to GitHub Release %s", audio_url)
+
+        feed_path = gh.get_feed_path()
+        feed_path.parent.mkdir(parents=True, exist_ok=True)
+
+        existing_xml = None
+        if feed_path.exists():
+            existing_xml = feed_path.read_text(encoding="utf-8")
+
+        feed_gen = FeedGenerator(
+            self.config.feed_title,
+            self.config.feed_description,
+            self.config.github_pages_url,
+        )
+        feed_xml = feed_gen.update_feed(
+            date, audio_url, audio_path.stat().st_size, existing_xml,
+        )
+        feed_path.write_text(feed_xml, encoding="utf-8")
+
+        await self._git_push_feed(feed_path)
+        logger.info("podcast: feed.xml pushed to GitHub Pages → %s", gh.get_feed_url())
+
+    async def _upload_r2(self, audio_path: Path, date: str) -> None:
+        uploader = R2Uploader(
+            self.config.r2_bucket,
+            self.config.r2_endpoint,
+            self.config.r2_public_url,
+        )
+        remote_key = f"episodes/horizon-{date}.mp3"
+        audio_url = await uploader.upload(audio_path, remote_key, "audio/mpeg")
+        logger.info("podcast: uploaded to R2 %s", audio_url)
+
+        existing = await uploader.download_text("feed.xml")
+        feed_gen = FeedGenerator(
+            self.config.feed_title,
+            self.config.feed_description,
+            self.config.r2_public_url,
+        )
+        feed_xml = feed_gen.update_feed(
+            date, audio_url, audio_path.stat().st_size, existing,
+        )
+        feed_local = audio_path.parent / "feed.xml"
+        feed_local.write_text(feed_xml, encoding="utf-8")
+        await uploader.upload(feed_local, "feed.xml", "application/xml")
+        logger.info("podcast: feed.xml updated on R2")
+
+    @staticmethod
+    async def _git_push_feed(feed_path: Path) -> None:
+        """Commit and push feed.xml to update GitHub Pages."""
+        cmds = [
+            ["git", "add", str(feed_path)],
+            ["git", "commit", "-m", "chore(podcast): update feed.xml"],
+            ["git", "push"],
+        ]
+        for cmd in cmds:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            _, stderr = await proc.communicate()
+            if proc.returncode != 0:
+                err_msg = stderr.decode(errors="replace")
+                if "nothing to commit" in err_msg:
+                    continue
+                logger.warning("podcast: git command failed: %s → %s", cmd, err_msg)
 
     async def _select_items(
         self,

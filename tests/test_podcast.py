@@ -3,6 +3,7 @@
 import asyncio
 import json
 import math
+import os
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -12,7 +13,10 @@ from src.ai.client import CompletionResult, TokenUsage
 from src.models import ContentItem, PodcastConfig, SourceType
 from src.services.podcast import (
     AudioMerger,
+    FeedGenerator,
+    GitHubUploader,
     PodcastPipeline,
+    R2Uploader,
     ScriptGenerator,
     TTSSynthesizer,
 )
@@ -316,3 +320,408 @@ def test_pipeline_prompt_file_missing():
     with patch("src.services.podcast.load_prompt", return_value=None):
         with pytest.raises(ValueError, match="Podcast prompt file not found"):
             PodcastPipeline(config, mock_client)
+
+
+# ------------------------------------------------------------------
+# GitHubUploader
+# ------------------------------------------------------------------
+
+
+def test_github_uploader_create_release_and_upload(tmp_path):
+    """Upload creates release and uploads asset, returns download URL."""
+    test_file = tmp_path / "horizon-2026-03-13.mp3"
+    test_file.write_bytes(b"\xff" * 100)
+
+    async def _run():
+        with patch.dict(os.environ, {"GITHUB_TOKEN": "fake-token"}):
+            uploader = GitHubUploader(
+                repo="user/repo",
+                pages_url="https://user.github.io/repo",
+            )
+
+        mock_create_resp = MagicMock()
+        mock_create_resp.status_code = 201
+        mock_create_resp.json.return_value = {
+            "upload_url": "https://uploads.github.com/repos/user/repo/releases/1/assets{?name}",
+        }
+
+        mock_upload_resp = MagicMock()
+        mock_upload_resp.status_code = 201
+        mock_upload_resp.json.return_value = {
+            "browser_download_url": "https://github.com/user/repo/releases/download/podcast-2026-03-13/horizon-2026-03-13.mp3",
+        }
+
+        mock_client = AsyncMock()
+        mock_client.post.side_effect = [mock_create_resp, mock_upload_resp]
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            url = await uploader.create_release_and_upload(test_file, "podcast-2026-03-13")
+
+        assert "horizon-2026-03-13.mp3" in url
+        assert mock_client.post.call_count == 2
+
+    asyncio.run(_run())
+
+
+def test_github_uploader_reuses_existing_release(tmp_path):
+    """If release already exists (422), fetches and reuses it."""
+    test_file = tmp_path / "test.mp3"
+    test_file.write_bytes(b"\xff" * 50)
+
+    async def _run():
+        with patch.dict(os.environ, {"GITHUB_TOKEN": "fake-token"}):
+            uploader = GitHubUploader(repo="user/repo", pages_url="https://u.github.io/r")
+
+        mock_422_resp = MagicMock()
+        mock_422_resp.status_code = 422
+
+        mock_get_resp = MagicMock()
+        mock_get_resp.status_code = 200
+        mock_get_resp.json.return_value = {
+            "upload_url": "https://uploads.github.com/releases/1/assets{?name}",
+        }
+
+        mock_upload_resp = MagicMock()
+        mock_upload_resp.status_code = 201
+        mock_upload_resp.json.return_value = {
+            "browser_download_url": "https://github.com/u/r/releases/download/tag/test.mp3",
+        }
+
+        mock_client = AsyncMock()
+        mock_client.post.side_effect = [mock_422_resp, mock_upload_resp]
+        mock_client.get.return_value = mock_get_resp
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            url = await uploader.create_release_and_upload(test_file, "tag")
+
+        assert "test.mp3" in url
+        mock_client.get.assert_called_once()
+
+    asyncio.run(_run())
+
+
+def test_github_uploader_missing_token():
+    """Missing GITHUB_TOKEN raises EnvironmentError."""
+    with patch.dict(os.environ, {}, clear=True):
+        os.environ.pop("GITHUB_TOKEN", None)
+        with pytest.raises(EnvironmentError, match="GITHUB_TOKEN"):
+            GitHubUploader(repo="user/repo", pages_url="https://u.github.io/r")
+
+
+def test_github_uploader_feed_path():
+    """Feed path is docs/podcast/feed.xml."""
+    with patch.dict(os.environ, {"GITHUB_TOKEN": "fake"}):
+        uploader = GitHubUploader(repo="user/repo", pages_url="https://u.github.io/repo")
+    assert uploader.get_feed_path() == Path("docs/podcast/feed.xml")
+    assert uploader.get_feed_url() == "https://u.github.io/repo/podcast/feed.xml"
+
+
+# ------------------------------------------------------------------
+# R2Uploader
+# ------------------------------------------------------------------
+
+
+def test_r2_uploader_upload(tmp_path):
+    """Upload returns public URL."""
+    test_file = tmp_path / "test.mp3"
+    test_file.write_bytes(b"\xff" * 100)
+
+    uploader = R2Uploader(
+        bucket="test-bucket",
+        endpoint="https://fake.r2.dev",
+        public_url="https://pub-abc.r2.dev",
+    )
+
+    async def _run():
+        with patch.object(uploader, "_get_client") as mock_get:
+            mock_client = MagicMock()
+            mock_get.return_value = mock_client
+            url = await uploader.upload(test_file, "episodes/test.mp3", "audio/mpeg")
+            mock_client.upload_file.assert_called_once_with(
+                str(test_file), "test-bucket", "episodes/test.mp3",
+                ExtraArgs={"ContentType": "audio/mpeg"},
+            )
+            return url
+
+    url = asyncio.run(_run())
+    assert url == "https://pub-abc.r2.dev/episodes/test.mp3"
+
+
+def test_r2_uploader_download_text():
+    """Download text returns content or None on failure."""
+    uploader = R2Uploader(
+        bucket="test-bucket",
+        endpoint="https://fake.r2.dev",
+        public_url="https://pub-abc.r2.dev",
+    )
+
+    async def _run():
+        with patch.object(uploader, "_get_client") as mock_get:
+            mock_client = MagicMock()
+            mock_resp = {"Body": MagicMock()}
+            mock_resp["Body"].read.return_value = b"<rss>existing</rss>"
+            mock_client.get_object.return_value = mock_resp
+            mock_get.return_value = mock_client
+            result = await uploader.download_text("feed.xml")
+            assert result == "<rss>existing</rss>"
+
+    asyncio.run(_run())
+
+
+def test_r2_uploader_download_text_not_found():
+    """Download returns None when key doesn't exist."""
+    uploader = R2Uploader(
+        bucket="test-bucket",
+        endpoint="https://fake.r2.dev",
+        public_url="https://pub-abc.r2.dev",
+    )
+
+    async def _run():
+        with patch.object(uploader, "_get_client") as mock_get:
+            mock_client = MagicMock()
+            mock_client.get_object.side_effect = Exception("NoSuchKey")
+            mock_get.return_value = mock_client
+            result = await uploader.download_text("feed.xml")
+            assert result is None
+
+    asyncio.run(_run())
+
+
+# ------------------------------------------------------------------
+# FeedGenerator
+# ------------------------------------------------------------------
+
+
+def test_feed_generator_new_feed():
+    """Generate a new feed from scratch."""
+    gen = FeedGenerator(
+        title="Test Podcast",
+        description="Test Description",
+        public_url="https://pub-abc.r2.dev",
+    )
+    xml = gen.update_feed("2026-03-13", "https://pub-abc.r2.dev/ep.mp3", 7000000)
+
+    assert '<?xml version="1.0"' in xml
+    assert "<title>Test Podcast</title>" in xml
+    assert "<description>Test Description</description>" in xml
+    assert "<language>zh-cn</language>" in xml
+    assert 'url="https://pub-abc.r2.dev/ep.mp3"' in xml
+    assert 'length="7000000"' in xml
+    assert 'type="audio/mpeg"' in xml
+    assert "<guid>https://pub-abc.r2.dev/ep.mp3</guid>" in xml
+    assert "<pubDate>" in xml
+
+
+def test_feed_generator_update_existing():
+    """Update an existing feed preserves old episodes."""
+    gen = FeedGenerator(
+        title="Test Podcast",
+        description="Test",
+        public_url="https://pub-abc.r2.dev",
+    )
+    feed1 = gen.update_feed("2026-03-12", "https://r2.dev/ep1.mp3", 5000000)
+    feed2 = gen.update_feed("2026-03-13", "https://r2.dev/ep2.mp3", 6000000, feed1)
+
+    assert "ep1.mp3" in feed2
+    assert "ep2.mp3" in feed2
+    items = feed2.count("<item>")
+    assert items == 2
+
+
+def test_feed_generator_invalid_existing_xml():
+    """Invalid existing XML creates a new feed instead of crashing."""
+    gen = FeedGenerator(
+        title="Test",
+        description="Test",
+        public_url="https://pub-abc.r2.dev",
+    )
+    xml = gen.update_feed("2026-03-13", "https://r2.dev/ep.mp3", 1000, "not xml!!!")
+    assert "<title>Test</title>" in xml
+    assert "ep.mp3" in xml
+
+
+# ------------------------------------------------------------------
+# Pipeline + R2 integration
+# ------------------------------------------------------------------
+
+
+def test_pipeline_uploads_when_r2_configured(tmp_path):
+    """Pipeline calls R2 upload + feed update when r2_bucket is set."""
+    mock_client = AsyncMock()
+    config = PodcastConfig(
+        enabled=True,
+        r2_bucket="test-bucket",
+        r2_endpoint="https://fake.r2.dev",
+        r2_public_url="https://pub-abc.r2.dev",
+    )
+
+    fake_mp3 = tmp_path / "horizon-2026-03-13.mp3"
+    fake_mp3.write_bytes(b"\xff\xfb\x90\x00" * 100)
+
+    async def _run():
+        with patch("src.services.podcast.load_prompt", return_value="prompt"), \
+             patch.object(PodcastPipeline, "_select_items", return_value=_make_items(3)), \
+             patch.object(PodcastPipeline, "_upload_and_update_feed") as mock_upload:
+            mock_upload.return_value = None
+
+            mock_client.complete.return_value = CompletionResult(
+                text=json.dumps({"script": VALID_SCRIPT}),
+                usage=TokenUsage(),
+            )
+
+            with patch("src.services.podcast.TTSSynthesizer.synthesize") as mock_tts, \
+                 patch("src.services.podcast.AudioMerger.merge") as mock_merge:
+                mock_tts.return_value = [tmp_path / "seg.mp3"]
+                mock_merge.return_value = fake_mp3
+
+                pipeline = PodcastPipeline(config, mock_client)
+                result = await pipeline.generate({"headlines": _make_items(3)}, "2026-03-13")
+
+                assert result == fake_mp3
+                mock_upload.assert_called_once_with(fake_mp3, "2026-03-13")
+
+    asyncio.run(_run())
+
+
+def test_pipeline_skips_upload_when_no_r2():
+    """Pipeline skips R2 upload when r2_bucket is empty."""
+    mock_client = AsyncMock()
+    config = PodcastConfig(enabled=True, r2_bucket="")
+
+    async def _run():
+        with patch("src.services.podcast.load_prompt", return_value="prompt"), \
+             patch.object(PodcastPipeline, "_select_items", return_value=_make_items(3)), \
+             patch.object(PodcastPipeline, "_upload_and_update_feed") as mock_upload:
+
+            mock_client.complete.return_value = CompletionResult(
+                text=json.dumps({"script": VALID_SCRIPT}),
+                usage=TokenUsage(),
+            )
+
+            with patch("src.services.podcast.TTSSynthesizer.synthesize") as mock_tts, \
+                 patch("src.services.podcast.AudioMerger.merge") as mock_merge:
+                fake_mp3 = Path("/tmp/fake.mp3")
+                mock_tts.return_value = [Path("/tmp/seg.mp3")]
+                mock_merge.return_value = fake_mp3
+
+                pipeline = PodcastPipeline(config, mock_client)
+                result = await pipeline.generate({"headlines": _make_items(3)}, "2026-03-13")
+
+                mock_upload.assert_not_called()
+
+    asyncio.run(_run())
+
+
+def test_pipeline_r2_failure_doesnt_break_pipeline(tmp_path):
+    """R2 upload failure doesn't prevent returning the local MP3."""
+    mock_client = AsyncMock()
+    config = PodcastConfig(
+        enabled=True,
+        r2_bucket="test-bucket",
+        r2_endpoint="https://fake.r2.dev",
+        r2_public_url="https://pub-abc.r2.dev",
+    )
+
+    fake_mp3 = tmp_path / "horizon-2026-03-13.mp3"
+    fake_mp3.write_bytes(b"\xff" * 100)
+
+    async def _run():
+        with patch("src.services.podcast.load_prompt", return_value="prompt"), \
+             patch.object(PodcastPipeline, "_select_items", return_value=_make_items(3)):
+
+            mock_client.complete.return_value = CompletionResult(
+                text=json.dumps({"script": VALID_SCRIPT}),
+                usage=TokenUsage(),
+            )
+
+            with patch("src.services.podcast.TTSSynthesizer.synthesize") as mock_tts, \
+                 patch("src.services.podcast.AudioMerger.merge") as mock_merge, \
+                 patch.object(R2Uploader, "upload", side_effect=Exception("R2 down")):
+                mock_tts.return_value = [tmp_path / "seg.mp3"]
+                mock_merge.return_value = fake_mp3
+
+                pipeline = PodcastPipeline(config, mock_client)
+                result = await pipeline.generate({"headlines": _make_items(3)}, "2026-03-13")
+                assert result == fake_mp3
+
+    asyncio.run(_run())
+
+
+def test_pipeline_uses_github_when_configured(tmp_path):
+    """Pipeline calls GitHubUploader when github_repo is set."""
+    mock_client = AsyncMock()
+    config = PodcastConfig(
+        enabled=True,
+        github_repo="user/repo",
+        github_pages_url="https://user.github.io/repo",
+    )
+
+    fake_mp3 = tmp_path / "horizon-2026-03-13.mp3"
+    fake_mp3.write_bytes(b"\xff" * 100)
+
+    async def _run():
+        with patch("src.services.podcast.load_prompt", return_value="prompt"), \
+             patch.object(PodcastPipeline, "_select_items", return_value=_make_items(3)), \
+             patch.object(PodcastPipeline, "_upload_github") as mock_gh:
+            mock_gh.return_value = None
+
+            mock_client.complete.return_value = CompletionResult(
+                text=json.dumps({"script": VALID_SCRIPT}),
+                usage=TokenUsage(),
+            )
+
+            with patch("src.services.podcast.TTSSynthesizer.synthesize") as mock_tts, \
+                 patch("src.services.podcast.AudioMerger.merge") as mock_merge:
+                mock_tts.return_value = [tmp_path / "seg.mp3"]
+                mock_merge.return_value = fake_mp3
+
+                pipeline = PodcastPipeline(config, mock_client)
+                result = await pipeline.generate({"headlines": _make_items(3)}, "2026-03-13")
+
+                assert result == fake_mp3
+                mock_gh.assert_called_once_with(fake_mp3, "2026-03-13")
+
+    asyncio.run(_run())
+
+
+def test_pipeline_github_preferred_over_r2(tmp_path):
+    """GitHub is used when both github_repo and r2_bucket are set."""
+    mock_client = AsyncMock()
+    config = PodcastConfig(
+        enabled=True,
+        github_repo="user/repo",
+        github_pages_url="https://user.github.io/repo",
+        r2_bucket="also-set",
+    )
+
+    fake_mp3 = tmp_path / "test.mp3"
+    fake_mp3.write_bytes(b"\xff" * 50)
+
+    async def _run():
+        with patch("src.services.podcast.load_prompt", return_value="prompt"), \
+             patch.object(PodcastPipeline, "_select_items", return_value=_make_items(2)), \
+             patch.object(PodcastPipeline, "_upload_github") as mock_gh, \
+             patch.object(PodcastPipeline, "_upload_r2") as mock_r2:
+            mock_gh.return_value = None
+
+            mock_client.complete.return_value = CompletionResult(
+                text=json.dumps({"script": VALID_SCRIPT}),
+                usage=TokenUsage(),
+            )
+
+            with patch("src.services.podcast.TTSSynthesizer.synthesize") as mock_tts, \
+                 patch("src.services.podcast.AudioMerger.merge") as mock_merge:
+                mock_tts.return_value = [tmp_path / "seg.mp3"]
+                mock_merge.return_value = fake_mp3
+
+                pipeline = PodcastPipeline(config, mock_client)
+                await pipeline.generate({"headlines": _make_items(2)}, "2026-03-13")
+
+                mock_gh.assert_called_once()
+                mock_r2.assert_not_called()
+
+    asyncio.run(_run())

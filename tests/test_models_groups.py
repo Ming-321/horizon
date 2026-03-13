@@ -131,6 +131,13 @@ def test_podcast_config_defaults():
     assert c.items_per_group == 3
     assert c.output_dir == "data/podcasts"
     assert c.prompt_file == "podcast_dialogue.txt"
+    assert c.r2_bucket == ""
+    assert c.r2_endpoint == ""
+    assert c.r2_public_url == ""
+    assert c.github_repo == ""
+    assert c.github_pages_url == ""
+    assert c.feed_title == "Horizon 科技日报"
+    assert c.feed_description == "AI 生成的每日科技新闻播客"
 
 
 def test_output_config_defaults():

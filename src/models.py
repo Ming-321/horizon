@@ -211,6 +211,13 @@ class PodcastConfig(BaseModel):
     items_per_group: int = 3
     output_dir: str = "data/podcasts"
     prompt_file: str = "podcast_dialogue.txt"
+    r2_bucket: str = ""
+    r2_endpoint: str = ""
+    r2_public_url: str = ""
+    github_repo: str = ""
+    github_pages_url: str = ""
+    feed_title: str = "Horizon 科技日报"
+    feed_description: str = "AI 生成的每日科技新闻播客"
 
 
 class OutputConfig(BaseModel):

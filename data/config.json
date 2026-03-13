@@ -231,7 +231,14 @@
       "max_script_chars": 3000,
       "items_per_group": 3,
       "output_dir": "data/podcasts",
-      "prompt_file": "podcast_dialogue.txt"
+      "prompt_file": "podcast_dialogue.txt",
+      "r2_bucket": "",
+      "r2_endpoint": "",
+      "r2_public_url": "",
+      "github_repo": "Ming-321/horizon",
+      "github_pages_url": "https://ming-321.github.io/horizon",
+      "feed_title": "Horizon 科技日报",
+      "feed_description": "AI 生成的每日科技新闻播客"
     }
   },
   "notifications": {
