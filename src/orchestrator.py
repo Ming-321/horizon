@@ -367,45 +367,79 @@ class HorizonOrchestrator:
 
     @staticmethod
     def _aggregate_repo_updates(items: List[ContentItem]) -> List[ContentItem]:
-        """Merge multiple commits from the same repo (commits.atom) into one item."""
+        """Merge multiple updates from the same repo into one item.
+
+        Handles two cases:
+        - RSS commit feeds (keyed by feed_name)
+        - GitHub API releases (keyed by metadata.repo + presence of tag)
+        """
         aggregated = []
-        repo_buckets: Dict[str, List[ContentItem]] = {}
+        commit_buckets: Dict[str, List[ContentItem]] = {}
+        release_buckets: Dict[str, List[ContentItem]] = {}
+
         for item in items:
             if item.category == "github-updates" and item.metadata.get("feed_name"):
-                repo_buckets.setdefault(item.metadata["feed_name"], []).append(item)
+                commit_buckets.setdefault(item.metadata["feed_name"], []).append(item)
+            elif item.metadata.get("repo") and item.metadata.get("tag"):
+                release_buckets.setdefault(item.metadata["repo"], []).append(item)
             else:
                 aggregated.append(item)
-        for feed_name, repo_items in repo_buckets.items():
-            if len(repo_items) == 1:
-                aggregated.append(repo_items[0])
-                continue
-            repo_items.sort(
-                key=lambda x: (x.published_at is not None, x.published_at.timestamp() if x.published_at else float("-inf")),
-                reverse=True,
-            )
-            newest = repo_items[0]
-            top_summaries = [
-                it.title.split(": ", 1)[-1] if ": " in it.title else it.title
-                for it in repo_items[:2]
-            ]
-            title = f"{feed_name}: {len(repo_items)} updates \u2014 {', '.join(top_summaries)}"
-            content_lines = [
-                f"- [{it.published_at.strftime('%H:%M') if it.published_at else '??:??'}] {it.title}"
-                for it in repo_items
-            ]
-            merged = ContentItem(
-                id=newest.id,
-                source_type=newest.source_type,
-                title=title,
-                url=newest.url,
-                content="\n".join(content_lines),
-                author=newest.author,
-                published_at=newest.published_at,
-                category=newest.category,
-                metadata={**newest.metadata, "commit_count": len(repo_items)},
-            )
-            aggregated.append(merged)
+
+        merge = HorizonOrchestrator._merge_items
+
+        for feed_name, repo_items in commit_buckets.items():
+            aggregated.append(merge(
+                repo_items, feed_name, "updates", "commit_count",
+            ))
+
+        for repo_name, repo_items in release_buckets.items():
+            aggregated.append(merge(
+                repo_items, repo_name, "releases", "release_count",
+                summary_extractor=lambda it: it.metadata.get("tag", it.title),
+            ))
+
         return aggregated
+
+    @staticmethod
+    def _merge_items(
+        items: List[ContentItem],
+        repo_name: str,
+        kind: str,
+        count_key: str,
+        summary_extractor=None,
+    ) -> ContentItem:
+        """Merge a list of items from the same repo into a single item."""
+        if len(items) == 1:
+            return items[0]
+
+        items.sort(
+            key=lambda x: (x.published_at is not None,
+                           x.published_at.timestamp() if x.published_at else float("-inf")),
+            reverse=True,
+        )
+        newest = items[0]
+
+        if summary_extractor is None:
+            summary_extractor = lambda it: it.title.split(": ", 1)[-1] if ": " in it.title else it.title
+
+        top_summaries = [summary_extractor(it) for it in items[:3]]
+        title = f"{repo_name}: {len(items)} {kind} \u2014 {', '.join(top_summaries)}"
+
+        content_lines = [
+            f"- [{it.published_at.strftime('%H:%M') if it.published_at else '??:??'}] {it.title}"
+            for it in items
+        ]
+        return ContentItem(
+            id=newest.id,
+            source_type=newest.source_type,
+            title=title,
+            url=newest.url,
+            content="\n".join(content_lines),
+            author=newest.author,
+            published_at=newest.published_at,
+            category=newest.category,
+            metadata={**newest.metadata, count_key: len(items)},
+        )
 
     # ------------------------------------------------------------------
     # Prompt resolution
