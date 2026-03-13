@@ -5,7 +5,7 @@ title: Home
 
 # Horizon
 
-Welcome to [Horizon](https://github.com/thysrael/Horizon), an AI-driven information aggregation system.
+Welcome to [Horizon](https://github.com/Ming-321/horizon), an AI-driven information aggregation system.
 
 ## Documentation
 
