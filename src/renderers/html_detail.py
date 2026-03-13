@@ -23,19 +23,27 @@ class HtmlDetailRenderer:
         grouped_items: Dict[str, List[ContentItem]],
         date: str,
         total_fetched: int,
+        sub_topics_map: Optional[Dict[str, List[Dict]]] = None,
     ) -> str:
+        from .topic_classifier import TopicClassifier
+
+        groups = []
+        for name, items in grouped_items.items():
+            if not items:
+                continue
+            entries = [self._prepare_item(item) for item in items]
+            group_data: Dict[str, Any] = {"name": name, "entries": entries}
+            if sub_topics_map and name in sub_topics_map:
+                group_data["sub_topics"] = TopicClassifier.apply_topics(
+                    entries, sub_topics_map[name],
+                )
+            groups.append(group_data)
+
         return self.template.render(
             date=date,
             total_fetched=total_fetched,
             total_selected=sum(len(items) for items in grouped_items.values()),
-            groups=[
-                {
-                    "name": name,
-                    "entries": [self._prepare_item(item) for item in items],
-                }
-                for name, items in grouped_items.items()
-                if items
-            ],
+            groups=groups,
         )
 
     @staticmethod

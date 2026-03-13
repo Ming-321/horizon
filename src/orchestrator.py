@@ -267,11 +267,27 @@ class HorizonOrchestrator:
         if self.config.output.html.enabled:
             try:
                 from .renderers.html_detail import HtmlDetailRenderer
+                from .renderers.topic_classifier import TopicClassifier
+
+                sub_topics_map = {}
+                try:
+                    ai_client_classify = create_ai_client(self.config.ai)
+                    classifier = TopicClassifier(ai_client_classify)
+                    sub_topics_map = await self._classify_for_html(
+                        classifier, grouped_for_summary,
+                    )
+                except Exception as e:
+                    logger.warning("html topic classification failed, rendering without sub-topics: %s", e)
+
                 html_renderer = HtmlDetailRenderer()
-                html_content = html_renderer.render(grouped_for_summary, today, total_fetched)
+                html_content = html_renderer.render(
+                    grouped_for_summary, today, total_fetched,
+                    sub_topics_map=sub_topics_map,
+                )
                 html_path = self.storage.save_html(today, html_content)
                 logger.info("html: saved to %s", html_path)
                 self.console.print(f"\N{GLOBE WITH MERIDIANS} Saved HTML report to: {html_path}\n")
+                self._copy_html_to_pages(today, html_content)
             except Exception as e:
                 logger.warning("html output failed: %s", e)
                 self.console.print(f"[yellow]html output failed: {e}[/yellow]\n")
@@ -662,6 +678,41 @@ class HorizonOrchestrator:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    async def _classify_for_html(
+        self,
+        classifier,
+        grouped: Dict[str, List[ContentItem]],
+    ) -> Dict[str, List[Dict]]:
+        """Classify items into sub-topics for HTML rendering.
+
+        Only groups with scored items (ai_score not None) and >=4 items
+        are classified; others are left flat.
+        """
+        result: Dict[str, List[Dict]] = {}
+        for name, items in grouped.items():
+            has_scores = any(it.ai_score is not None for it in items)
+            if not has_scores or len(items) < 4:
+                continue
+            item_dicts = [
+                {"title": it.title, "tags": it.ai_tags or []}
+                for it in items
+            ]
+            topics = await classifier.classify_group(name, item_dicts)
+            result[name] = topics
+            logger.info("html topic classification [%s]: %d topics", name, len(topics))
+        return result
+
+    def _copy_html_to_pages(self, date: str, html: str) -> None:
+        try:
+            from pathlib import Path
+            reports_dir = Path("docs/reports")
+            reports_dir.mkdir(parents=True, exist_ok=True)
+            dest = reports_dir / f"horizon-{date}.html"
+            dest.write_text(html, encoding="utf-8")
+            self.console.print(f"\N{GLOBE WITH MERIDIANS} Copied HTML report to GitHub Pages: {dest}\n")
+        except Exception as e:
+            self.console.print(f"[yellow]\N{WARNING SIGN}\ufe0f  Failed to copy HTML to docs/: {e}[/yellow]\n")
 
     def _copy_to_jekyll(self, today: str, lang: str, summary: str) -> None:
         try:

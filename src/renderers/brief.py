@@ -54,10 +54,9 @@ class BriefRenderer:
     @staticmethod
     def _get_summary(item: ContentItem) -> str:
         meta = item.metadata
-        raw = (
+        return (
             meta.get("detailed_summary_zh")
             or meta.get("detailed_summary")
             or item.ai_summary
             or item.title
         )
-        return _first_sentence(raw)

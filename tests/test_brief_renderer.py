@@ -66,12 +66,11 @@ def test_summary_fallback_chain():
     item_zh = _make_item(detailed_summary_zh="中文摘要。后续内容。")
     renderer = BriefRenderer()
     md = renderer.render({"G": [item_zh]}, "d")
-    assert "中文摘要。" in md
-    assert "后续内容" not in md
+    assert "中文摘要。后续内容。" in md
 
     item_en = _make_item(detailed_summary="English summary. More.")
     md2 = renderer.render({"G": [item_en]}, "d")
-    assert "English summary." in md2
+    assert "English summary. More." in md2
 
     item_ai = ContentItem(
         id="t:1", source_type=SourceType.RSS, title="T",
@@ -82,12 +81,12 @@ def test_summary_fallback_chain():
     assert "AI generated summary." in md3
 
 
-def test_summary_no_punctuation_truncation():
+def test_summary_full_text_preserved():
     long_text = "A" * 100
     item = _make_item(detailed_summary_zh=long_text)
     renderer = BriefRenderer()
     md = renderer.render({"G": [item]}, "d")
-    assert "…" in md
+    assert long_text in md
 
 
 def test_first_sentence_empty():
