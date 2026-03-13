@@ -75,6 +75,12 @@
         "category": "github-updates"
       },
       {
+        "name": "Horizon Upstream",
+        "url": "https://github.com/Thysrael/Horizon/commits.atom",
+        "enabled": true,
+        "category": "github-updates"
+      },
+      {
         "name": "Superpowers Updates",
         "url": "https://github.com/obra/superpowers/commits.atom",
         "enabled": true,
