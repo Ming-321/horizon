@@ -75,7 +75,8 @@ class ScriptGenerator:
             if tags:
                 lines.append(f"   标签：{tags}")
             lines.append("")
-        lines.append(f"请生成总字数在 1500-{self.max_chars} 之间的双人对话脚本。")
+        lower = max(1500, self.max_chars // 2)
+        lines.append(f"请生成总字数在 {lower}-{self.max_chars} 之间的双人对话脚本。")
         return "\n".join(lines)
 
 
