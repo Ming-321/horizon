@@ -63,7 +63,7 @@ class ScriptGenerator:
             if not text or not text.strip():
                 return False
             total_chars += len(text)
-        return 500 <= total_chars <= 5000
+        return 500 <= total_chars <= 8000
 
     def _build_user_message(self, items: List[ContentItem], date: str) -> str:
         lines = [f"日期：{date}", f"共 {len(items)} 条新闻素材：", ""]

@@ -228,7 +228,7 @@
       "tts_endpoint": "wss://dashscope-intl.aliyuncs.com/api-ws/v1/inference",
       "voice_a": "longanyang",
       "voice_b": "longanhuan",
-      "max_script_chars": 3000,
+      "max_script_chars": 6000,
       "items_per_group": 3,
       "output_dir": "data/podcasts",
       "prompt_file": "podcast_dialogue.txt",
