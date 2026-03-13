@@ -10,21 +10,14 @@
       <title>Horizon 科技日报 - 2026-03-13</title>
       <description>2026-03-13 每日科技新闻播客</description>
       <enclosure url="https://github.com/Ming-321/horizon/releases/download/podcast-2026-03-13/horizon-2026-03-13.mp3" length="12581856" type="audio/mpeg" />
-      <guid>https://github.com/Ming-321/horizon/releases/download/podcast-2026-03-13/horizon-2026-03-13.mp3</guid>
-      <pubDate>Fri, 13 Mar 2026 07:00:00 +0800</pubDate>
-    </item>
-    <item>
-      <title>Horizon 科技日报 - 2026-03-13</title>
-      <description>2026-03-13 每日科技新闻播客</description>
-      <enclosure url="https://github.com/Ming-321/horizon/releases/download/podcast-2026-03-13/horizon-2026-03-13.mp3" length="3653003" type="audio/mpeg" />
-      <guid>https://github.com/Ming-321/horizon/releases/download/podcast-2026-03-13/horizon-2026-03-13.mp3</guid>
+      <guid>horizon-2026-03-13-v2</guid>
       <pubDate>Fri, 13 Mar 2026 07:00:00 +0800</pubDate>
     </item>
     <item>
       <title>Horizon 科技日报 - 2026-03-12</title>
       <description>2026-03-12 每日科技新闻播客</description>
       <enclosure url="https://github.com/Ming-321/horizon/releases/download/podcast-2026-03-12/horizon-2026-03-12.mp3" length="7069397" type="audio/mpeg" />
-      <guid>https://github.com/Ming-321/horizon/releases/download/podcast-2026-03-12/horizon-2026-03-12.mp3</guid>
+      <guid>horizon-2026-03-12</guid>
       <pubDate>Thu, 12 Mar 2026 07:00:00 +0800</pubDate>
     </item>
   </channel>
