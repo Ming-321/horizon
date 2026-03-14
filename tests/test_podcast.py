@@ -116,6 +116,46 @@ def test_script_validation_accepts_valid():
     assert ScriptGenerator._validate_script(VALID_SCRIPT) is True
 
 
+def test_script_generator_retries_after_invalid_output():
+    """Generator retries when the first completion is malformed."""
+    mock_client = AsyncMock()
+    mock_client.complete.side_effect = [
+        CompletionResult(text="not json", usage=TokenUsage()),
+        CompletionResult(text=json.dumps({"script": VALID_SCRIPT}), usage=TokenUsage()),
+    ]
+
+    gen = ScriptGenerator(mock_client, "system prompt", 3000)
+    result = asyncio.run(gen.generate(_make_items(3), "2026-03-12"))
+
+    assert result == VALID_SCRIPT
+    assert mock_client.complete.await_count == 2
+    assert gen.last_error is None
+
+
+def test_script_generator_repairs_minor_format_issues():
+    """Minor schema and speaker formatting drift is normalized automatically."""
+    repaired_source = [
+        {"speaker": "主持人A", "content": "大家好，欢迎收听今天的科技播客。" * 18},
+        {"role": "主持人B", "message": "今天的新闻非常密集，我们一条一条展开。" * 15},
+        "A：" + "第一条新闻涉及模型、工具链和开发效率的变化。" * 15,
+        {"name": "B", "dialogue": "这类变化会直接影响开发者的工作流和部署方式。" * 14},
+    ]
+
+    mock_client = AsyncMock()
+    mock_client.complete.return_value = CompletionResult(
+        text=json.dumps({"script": repaired_source}, ensure_ascii=False),
+        usage=TokenUsage(),
+    )
+
+    gen = ScriptGenerator(mock_client, "system prompt", 3000)
+    result = asyncio.run(gen.generate(_make_items(3), "2026-03-12"))
+
+    assert len(result) == 4
+    assert [seg["speaker"] for seg in result] == ["A", "B", "A", "B"]
+    assert all(seg["text"] for seg in result)
+    assert ScriptGenerator._validate_script(result) is True
+
+
 # ------------------------------------------------------------------
 # TTSSynthesizer
 # ------------------------------------------------------------------
@@ -259,6 +299,26 @@ def test_pipeline_exception_returns_none():
     grouped = {"头条速递": _make_items(3)}
     result = asyncio.run(pipeline.generate(grouped, "2026-03-12"))
     assert result is None
+
+
+def test_pipeline_records_script_failure_reason():
+    """Pipeline exposes the script failure reason for alerting."""
+    mock_client = AsyncMock()
+    mock_client.complete.return_value = CompletionResult(
+        text=json.dumps({"script": [{"speaker": "主持人A", "content": ""}]}),
+        usage=TokenUsage(),
+    )
+    config = PodcastConfig(enabled=True)
+
+    with patch("src.services.podcast.load_prompt", return_value="prompt text"):
+        pipeline = PodcastPipeline(config, mock_client)
+
+    grouped = {"头条速递": _make_items(3)}
+    result = asyncio.run(pipeline.generate(grouped, "2026-03-12"))
+
+    assert result is None
+    assert pipeline.last_failure_reason is not None
+    assert "script" in pipeline.last_failure_reason
 
 
 def test_select_items_balanced():

@@ -302,7 +302,11 @@ class HorizonOrchestrator:
                     logger.info("podcast: saved to %s", audio_path)
                     self.console.print(f"\N{STUDIO MICROPHONE} Podcast saved to: {audio_path}\n")
                 else:
-                    self.console.print("[yellow]Podcast generation returned no output[/yellow]\n")
+                    reason = pipeline.last_failure_reason or "unknown reason"
+                    self.console.print(
+                        f"[yellow]Podcast generation returned no output: {reason}[/yellow]\n"
+                    )
+                    self._notify_podcast_failure(today, reason)
             except Exception as e:
                 logger.warning("podcast generation failed: %s", e)
                 self.console.print(f"[yellow]Podcast generation failed: {e}[/yellow]\n")
@@ -780,3 +784,25 @@ class HorizonOrchestrator:
             self.console.print(f"\N{PAGE FACING UP} Copied {lang.upper()} summary to GitHub Pages: {dest_path}\n")
         except Exception as e:
             self.console.print(f"[yellow]\N{WARNING SIGN}\ufe0f  Failed to copy {lang.upper()} summary to docs/: {e}[/yellow]\n")
+
+    def _notify_podcast_failure(self, today: str, reason: str) -> None:
+        """Send an explicit podcast failure alert when the episode is skipped."""
+        logger.warning("podcast alert: %s", reason)
+        if not self.config.notifications.wxpusher.enabled:
+            return
+
+        try:
+            import markdown as md_lib
+            from .services.wxpusher import WxPusherService
+
+            wxpusher = WxPusherService(self.config.notifications.wxpusher)
+            alert_md = (
+                "## Podcast Failed\n\n"
+                f"- 日期: `{today}`\n"
+                f"- 原因: {reason}\n\n"
+                "日报和 HTML 已生成，但本次播客未发布到订阅源。"
+            )
+            if not wxpusher.push(md_lib.markdown(alert_md), summary=f"播客失败 {today}"):
+                logger.warning("podcast alert push failed")
+        except Exception as e:
+            logger.warning("podcast alert failed: %s", e)

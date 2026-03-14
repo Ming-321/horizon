@@ -5,6 +5,7 @@ import json
 import logging
 import math
 import os
+import re
 import shutil
 import tempfile
 import xml.etree.ElementTree as ET
@@ -24,50 +25,122 @@ logger = logging.getLogger(__name__)
 class ScriptGenerator:
     """Generate a two-person dialogue script via LLM."""
 
+    MAX_GENERATION_ATTEMPTS = 3
+    TEXT_KEYS = ("text", "content", "message", "dialogue", "line")
+    SPEAKER_KEYS = ("speaker", "role", "name", "host")
+    SPEAKER_ALIASES = {
+        "A": "A",
+        "B": "B",
+        "SPEAKERA": "A",
+        "SPEAKERB": "B",
+        "HOSTA": "A",
+        "HOSTB": "B",
+        "主持人A": "A",
+        "主持人B": "B",
+        "主播A": "A",
+        "主播B": "B",
+        "记者A": "A",
+        "记者B": "B",
+        "嘉宾A": "A",
+        "嘉宾B": "B",
+        "甲": "A",
+        "乙": "B",
+    }
+
     def __init__(self, ai_client: AIClient, prompt_text: str, max_chars: int):
         self.ai_client = ai_client
         self.prompt_text = prompt_text
         self.max_chars = max_chars
+        self.last_error: Optional[str] = None
 
     async def generate(self, items: List[ContentItem], date: str) -> List[Dict[str, str]]:
         """Call LLM to produce a dialogue script from news items."""
-        user_msg = self._build_user_message(items, date)
-        try:
-            max_tok = max(8192, self.max_chars * 2)
-            completion: CompletionResult = await self.ai_client.complete(
-                system=self.prompt_text,
-                user=user_msg,
-                max_tokens=max_tok,
-            )
-            data = json.loads(completion.text)
-            script = data["script"]
-        except (json.JSONDecodeError, KeyError, TypeError) as e:
-            logger.warning("Failed to parse script JSON: %s", e)
-            return []
+        base_user_msg = self._build_user_message(items, date)
+        self.last_error = None
+        feedback = ""
 
-        if not self._validate_script(script):
-            total = sum(len(s.get("text", "")) for s in script if isinstance(s, dict))
-            logger.warning("Script validation failed: %d segments, %d chars (limit 500-%d)",
-                           len(script), total, 8000)
-            return []
-        return script
+        for attempt in range(1, self.MAX_GENERATION_ATTEMPTS + 1):
+            user_msg = self._build_retry_message(base_user_msg, feedback, attempt)
+            try:
+                max_tok = max(8192, self.max_chars * 2)
+                completion: CompletionResult = await self.ai_client.complete(
+                    system=self.prompt_text,
+                    user=user_msg,
+                    max_tokens=max_tok,
+                )
+                data = json.loads(completion.text)
+                script = self._extract_script(data)
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                self.last_error = f"script JSON parsing failed on attempt {attempt}: {e}"
+                feedback = "输出必须是合法 JSON，且顶层包含 script 数组。"
+                logger.warning(
+                    "Failed to parse script JSON on attempt %d/%d: %s",
+                    attempt, self.MAX_GENERATION_ATTEMPTS, e,
+                )
+                continue
+
+            repaired, repairs = self._repair_script(script)
+            issues = self._validate_script_issues(repaired)
+            if not issues:
+                if repairs:
+                    logger.info(
+                        "podcast script repaired on attempt %d: %s",
+                        attempt, "; ".join(repairs[:3]),
+                    )
+                self.last_error = None
+                return repaired
+
+            total = sum(len(s.get("text", "")) for s in repaired if isinstance(s, dict))
+            detail = "; ".join(issues[:4])
+            self.last_error = (
+                f"script validation failed on attempt {attempt}: {detail}"
+            )
+            feedback = (
+                "上一次输出不符合要求："
+                f"{detail}。请只输出合法 JSON，确保 speaker 只能为 A/B，text 非空。"
+            )
+            logger.warning(
+                "Script validation failed on attempt %d/%d: %s (segments=%d, chars=%d, limit 500-%d)",
+                attempt, self.MAX_GENERATION_ATTEMPTS, detail, len(repaired), total, 8000,
+            )
+
+        if not self.last_error:
+            self.last_error = "script generation returned empty after retries"
+        return []
 
     @staticmethod
     def _validate_script(script: List[Dict]) -> bool:
         """Validate speaker legality, non-empty text, min segments, total char range."""
-        if not isinstance(script, list) or len(script) < 4:
-            return False
+        return not ScriptGenerator._validate_script_issues(script)
+
+    @staticmethod
+    def _validate_script_issues(script: List[Dict]) -> List[str]:
+        """Return explicit validation issues for diagnostics and retries."""
+        if not isinstance(script, list):
+            return ["script is not a list"]
+
+        issues: List[str] = []
+        if len(script) < 4:
+            issues.append(f"expected at least 4 segments, got {len(script)}")
+
         total_chars = 0
-        for seg in script:
+        for idx, seg in enumerate(script, 1):
             if not isinstance(seg, dict):
-                return False
+                issues.append(f"segment {idx} is not an object")
+                continue
             if seg.get("speaker") not in ("A", "B"):
-                return False
+                issues.append(f"segment {idx} has invalid speaker {seg.get('speaker')!r}")
             text = seg.get("text", "")
             if not text or not text.strip():
-                return False
+                issues.append(f"segment {idx} has empty text")
+                continue
             total_chars += len(text)
-        return 500 <= total_chars <= 8000
+
+        if total_chars < 500:
+            issues.append(f"total chars {total_chars} below 500")
+        if total_chars > 8000:
+            issues.append(f"total chars {total_chars} above 8000")
+        return issues
 
     def _build_user_message(self, items: List[ContentItem], date: str) -> str:
         lines = [f"日期：{date}", f"共 {len(items)} 条新闻素材：", ""]
@@ -82,6 +155,120 @@ class ScriptGenerator:
         lower = max(1500, self.max_chars // 2)
         lines.append(f"请生成总字数在 {lower}-{self.max_chars} 之间的双人对话脚本。")
         return "\n".join(lines)
+
+    @staticmethod
+    def _extract_script(data: object) -> List[Dict[str, str]]:
+        if isinstance(data, dict):
+            script = data.get("script", data.get("segments"))
+        elif isinstance(data, list):
+            script = data
+        else:
+            raise TypeError(f"unexpected top-level type: {type(data).__name__}")
+
+        if not isinstance(script, list):
+            raise TypeError("script field is not a list")
+        return script
+
+    @classmethod
+    def _repair_script(cls, script: List[Dict[str, str]]) -> tuple[List[Dict[str, str]], List[str]]:
+        repaired: List[Dict[str, str]] = []
+        repair_notes: List[str] = []
+
+        if not isinstance(script, list):
+            return repaired, ["script was not a list"]
+
+        for idx, seg in enumerate(script, 1):
+            original = seg
+            speaker = None
+            text = ""
+
+            if isinstance(seg, str):
+                text = seg
+            elif isinstance(seg, dict):
+                for key in cls.SPEAKER_KEYS:
+                    value = seg.get(key)
+                    if isinstance(value, str) and value.strip():
+                        speaker = value
+                        break
+                for key in cls.TEXT_KEYS:
+                    value = seg.get(key)
+                    if isinstance(value, str) and value.strip():
+                        text = value
+                        break
+            else:
+                repair_notes.append(f"segment {idx} dropped: unsupported type {type(seg).__name__}")
+                continue
+
+            speaker, text, changed = cls._normalize_segment(speaker, text)
+            if changed:
+                repair_notes.append(f"segment {idx} normalized")
+
+            if speaker is None and isinstance(original, dict):
+                prefix_speaker, prefix_text, prefix_changed = cls._normalize_segment(
+                    original.get("speaker"), json.dumps(original, ensure_ascii=False),
+                )
+                if prefix_changed and prefix_speaker in ("A", "B") and prefix_text.strip():
+                    speaker = prefix_speaker
+                    text = prefix_text
+                    repair_notes.append(f"segment {idx} recovered from serialized object")
+
+            repaired.append({"speaker": speaker, "text": text})
+
+        return repaired, repair_notes
+
+    @classmethod
+    def _normalize_segment(
+        cls, speaker: Optional[str], text: str,
+    ) -> tuple[Optional[str], str, bool]:
+        changed = False
+        text = (text or "").strip()
+
+        prefix_speaker, stripped_text = cls._extract_speaker_from_text(text)
+        if prefix_speaker:
+            if speaker != prefix_speaker:
+                changed = True
+            speaker = prefix_speaker
+            text = stripped_text
+
+        normalized_speaker = cls._normalize_speaker(speaker)
+        if normalized_speaker != speaker:
+            changed = True
+
+        normalized_text = re.sub(r"\s+", " ", text).strip()
+        if normalized_text != text:
+            changed = True
+
+        return normalized_speaker, normalized_text, changed
+
+    @classmethod
+    def _normalize_speaker(cls, speaker: Optional[str]) -> Optional[str]:
+        if not isinstance(speaker, str):
+            return None
+
+        trimmed = speaker.strip()
+        if not trimmed:
+            return None
+        if trimmed in ("A", "B"):
+            return trimmed
+
+        compact = re.sub(r"[\s_:\-：]+", "", trimmed)
+        return cls.SPEAKER_ALIASES.get(compact) or cls.SPEAKER_ALIASES.get(compact.upper())
+
+    @classmethod
+    def _extract_speaker_from_text(cls, text: str) -> tuple[Optional[str], str]:
+        match = re.match(r"^(A|B|主持人A|主持人B|主播A|主播B|记者A|记者B|甲|乙)\s*[:：\-]\s*(.+)$", text)
+        if not match:
+            return None, text
+
+        speaker = cls._normalize_speaker(match.group(1))
+        content = match.group(2).strip()
+        return speaker, content
+
+    @staticmethod
+    def _build_retry_message(base_user_msg: str, feedback: str, attempt: int) -> str:
+        if attempt == 1 or not feedback:
+            return base_user_msg
+        return f"{base_user_msg}\n\n修正要求（第 {attempt} 次尝试）：\n{feedback}"
 
 
 class TTSSynthesizer:
@@ -352,6 +539,7 @@ class PodcastPipeline:
         self.config = config
         self.ai_client = ai_client
         self.classifier = TopicClassifier(ai_client)
+        self.last_failure_reason: Optional[str] = None
 
         prompt_text = load_prompt(config.prompt_file)
         if not prompt_text:
@@ -371,17 +559,20 @@ class PodcastPipeline:
     ) -> Optional[Path]:
         """Run full pipeline: select → script → TTS → merge."""
         work_dir = None
+        self.last_failure_reason = None
         try:
             selected = await self._select_items(grouped_items)
             if not selected:
                 logger.info("podcast: no items selected, skipping")
+                self.last_failure_reason = "no items selected for podcast script"
                 return None
 
             logger.info("podcast: selected %d items for script", len(selected))
 
             script = await self.script_gen.generate(selected, date)
             if not script:
-                logger.warning("podcast: script generation returned empty")
+                self.last_failure_reason = self.script_gen.last_error or "script generation returned empty"
+                logger.warning("podcast: script generation returned empty: %s", self.last_failure_reason)
                 return None
             logger.info("podcast: script generated with %d segments", len(script))
 
@@ -389,6 +580,7 @@ class PodcastPipeline:
             segments = await self.tts.synthesize(script, work_dir)
             if not segments:
                 logger.warning("podcast: all TTS segments failed")
+                self.last_failure_reason = "all TTS segments failed"
                 return None
             logger.info("podcast: %d/%d TTS segments succeeded", len(segments), len(script))
 
@@ -397,6 +589,9 @@ class PodcastPipeline:
             output_path = output_dir / f"horizon-{date}.mp3"
 
             result = await AudioMerger.merge(segments, output_path)
+            if not result:
+                self.last_failure_reason = "audio merge failed"
+                return None
 
             if result and (self.config.github_repo or self.config.r2_bucket):
                 await self._upload_and_update_feed(result, date)
@@ -404,6 +599,7 @@ class PodcastPipeline:
             return result
 
         except Exception as e:
+            self.last_failure_reason = str(e)
             logger.error("podcast pipeline failed: %s", e)
             return None
         finally:

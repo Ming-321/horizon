@@ -201,3 +201,53 @@ def test_podcast_config_backward_compat(tmp_path):
     )
     config = Config(**cfg)
     assert config.output.podcast.enabled is False
+
+
+@patch("wxpusher.WxPusher.send_message")
+def test_podcast_failure_alert_sent(mock_send, tmp_path):
+    """Podcast failures should trigger an explicit WxPusher alert."""
+    from src.orchestrator import HorizonOrchestrator
+
+    mock_send.return_value = {"success": True, "data": [{"code": 1000}]}
+    env = {
+        "WXPUSHER_APP_TOKEN": "token",
+        "WXPUSHER_UIDS": "UID_A",
+        "WXPUSHER_TOPIC_IDS": "",
+    }
+    with patch.dict(os.environ, env, clear=False):
+        cfg = _minimal_config(
+            output={
+                "brief": {"enabled": False},
+                "html": {"enabled": False},
+                "podcast": {"enabled": True},
+            },
+            notifications={"wxpusher": {"enabled": True}},
+        )
+        config = Config(**cfg)
+        storage = StorageManager(data_dir=str(tmp_path / "data"))
+        orch = HorizonOrchestrator(config, storage)
+        orch._notify_podcast_failure("2026-03-14", "script validation failed")
+
+    mock_send.assert_called_once()
+    assert "Podcast Failed" in mock_send.call_args.args[0]
+
+
+@patch("wxpusher.WxPusher.send_message")
+def test_podcast_failure_alert_skipped_when_disabled(mock_send, tmp_path):
+    """No alert should be sent when WxPusher is disabled."""
+    from src.orchestrator import HorizonOrchestrator
+
+    cfg = _minimal_config(
+        output={
+            "brief": {"enabled": False},
+            "html": {"enabled": False},
+            "podcast": {"enabled": True},
+        },
+        notifications={"wxpusher": {"enabled": False}},
+    )
+    config = Config(**cfg)
+    storage = StorageManager(data_dir=str(tmp_path / "data"))
+    orch = HorizonOrchestrator(config, storage)
+    orch._notify_podcast_failure("2026-03-14", "script validation failed")
+
+    mock_send.assert_not_called()
