@@ -1,7 +1,7 @@
 ---
 layout: default
 title: "Horizon Summary: 2026-03-15 (EN)"
-date: 2026-03-15
+date: 2026-03-15 00:00:00 +0800
 lang: en
 ---
 
