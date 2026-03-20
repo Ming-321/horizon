@@ -1,0 +1,3046 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Horizon 日报 — 2026-03-21</title>
+<style>
+:root {
+  --bg: #f5f0eb;
+  --fg: #1a1a1a;
+  --accent: #b22222;
+  --link: #1a5276;
+  --card-bg: #fff;
+  --border: #c8bfb0;
+  --muted: #6b6b6b;
+  --badge-high: #b22222;
+  --badge-mid: #c77d1a;
+  --badge-low: #5b7a3e;
+  --sidebar-w: 320px;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", Georgia, serif;
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.7;
+  display: flex;
+}
+
+/* ── Sidebar ─────────────────────────────────── */
+.sidebar {
+  flex-shrink: 0;
+  width: var(--sidebar-w);
+  height: 100vh;
+  overflow-y: auto;
+  background: #ede7df;
+  border-right: 1px solid var(--border);
+  padding: 16px 0;
+  font-size: 0.8rem;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.sidebar .brand {
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-align: center;
+  padding: 0 14px 12px;
+  border-bottom: 2px double var(--border);
+  margin-bottom: 10px;
+  color: var(--accent);
+}
+.sidebar .nav-pages {
+  flex: 1;
+  overflow-y: auto;
+}
+.sidebar .nav-page-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 14px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  color: var(--fg);
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+}
+.sidebar .nav-page-btn:hover {
+  background: rgba(0,0,0,0.04);
+}
+.sidebar .nav-page-btn.active {
+  color: var(--accent);
+  background: rgba(178,34,34,0.06);
+  border-left-color: var(--accent);
+}
+.sidebar .nav-page-btn .count {
+  float: right;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+.sidebar .nav-items-list {
+  display: none;
+  padding: 2px 0 6px;
+}
+.sidebar .nav-page-btn.active + .nav-items-list {
+  display: block;
+}
+.sidebar .nav-item {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 14px 2px 22px;
+  color: var(--fg);
+  text-decoration: none;
+  line-height: 1.3;
+  font-weight: 400;
+  font-size: 0.76rem;
+  border-left: 3px solid transparent;
+  transition: background 0.1s;
+}
+.sidebar .nav-item:hover { background: rgba(0,0,0,0.03); }
+.sidebar .nav-item.current {
+  background: rgba(178,34,34,0.08);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+.sidebar .nav-score {
+  flex-shrink: 0;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #fff;
+  min-width: 22px;
+  text-align: center;
+  padding: 0 3px;
+  border-radius: 2px;
+  line-height: 1.5;
+}
+.sidebar .nav-score.s-high { background: var(--badge-high); }
+.sidebar .nav-score.s-mid  { background: var(--badge-mid); }
+.sidebar .nav-score.s-low  { background: var(--badge-low); }
+.sidebar .nav-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar .nav-sub-topic {
+  margin-bottom: 4px;
+}
+.sidebar .nav-sub-label {
+  padding: 4px 14px 2px 18px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--link);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  opacity: 0.7;
+}
+.resize-handle {
+  position: fixed;
+  top: 0;
+  left: var(--sidebar-w);
+  width: 5px;
+  height: 100vh;
+  cursor: col-resize;
+  z-index: 101;
+  background: transparent;
+  transition: background 0.15s;
+}
+.resize-handle:hover, .resize-handle.dragging {
+  background: var(--accent);
+  opacity: 0.4;
+}
+
+/* ── Page Container ──────────────────────────── */
+.pages-wrapper {
+  flex: 1;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+.page {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 32px 40px 60px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.page.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Page Indicator ──────────────────────────── */
+.page-indicator {
+  position: fixed;
+  bottom: 16px;
+  left: calc(var(--sidebar-w) + 20px);
+  display: flex;
+  gap: 8px;
+  z-index: 50;
+}
+.page-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+.page-dot.active {
+  background: var(--accent);
+  transform: scale(1.3);
+}
+.page-nav-hint {
+  position: fixed;
+  bottom: 16px;
+  right: 24px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  z-index: 50;
+}
+
+/* ── Front Page ──────────────────────────────── */
+.front-page-header {
+  text-align: center;
+  padding-bottom: 20px;
+  border-bottom: 3px double var(--border);
+  margin-bottom: 28px;
+}
+.front-page-header h1 {
+  font-size: 2.6rem;
+  letter-spacing: 0.1em;
+  font-weight: 900;
+}
+.front-page-header .date-line {
+  font-size: 0.95rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.front-page-header .stats {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.front-page-header .stats span { font-weight: 600; color: var(--fg); }
+
+.headline-zone {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.headline-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 20px 24px;
+}
+.headline-card:first-child {
+  border-left: 4px solid var(--accent);
+}
+.headline-card .hl-score {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.headline-card .hl-title {
+  font-size: 1.3rem;
+  font-weight: 900;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+.headline-card:first-child .hl-title {
+  font-size: 1.5rem;
+}
+.headline-card .hl-title a {
+  color: var(--fg);
+  text-decoration: none;
+}
+.headline-card .hl-title a:hover { color: var(--link); }
+.headline-card .hl-summary {
+  font-size: 0.88rem;
+  line-height: 1.65;
+  color: #333;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.headline-card:first-child .hl-summary {
+  -webkit-line-clamp: 6;
+}
+.headline-card .hl-meta {
+  font-size: 0.74rem;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.front-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.front-section:last-child {
+  border-bottom: none;
+}
+.picks-label {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent);
+  padding-bottom: 6px;
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.picks-label .section-link {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 2px;
+}
+.picks-label .section-link:hover {
+  opacity: 0.8;
+}
+.picks-label .section-total {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--link);
+  cursor: pointer;
+}
+.picks-label .section-total:hover {
+  text-decoration: underline;
+}
+.picks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 14px;
+}
+.pick-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 16px;
+}
+.pick-card .pick-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.pick-card .pick-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.pick-card .pick-title a {
+  color: var(--fg);
+  text-decoration: none;
+}
+.pick-card .pick-title a:hover { color: var(--link); }
+.pick-card .pick-summary {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #555;
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.pick-card .pick-meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* ── Section Pages (multi-column) ────────────── */
+.section-header {
+  border-bottom: 3px double var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 24px;
+}
+.section-header h2 {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--accent);
+  letter-spacing: 0.05em;
+}
+.section-header .section-count {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.sub-topic-section {
+  margin-bottom: 28px;
+}
+.sub-topic-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--link);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+}
+.sub-topic-count {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--muted);
+  margin-left: 6px;
+}
+.columns-flow {
+  column-width: 420px;
+  column-gap: 20px;
+}
+
+.col-card {
+  break-inside: avoid;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.col-card .item-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-bottom: 5px;
+}
+.score-badge {
+  flex-shrink: 0;
+  display: inline-block;
+  min-width: 34px;
+  text-align: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #fff;
+}
+.score-high { background: var(--badge-high); }
+.score-mid  { background: var(--badge-mid); }
+.score-low  { background: var(--badge-low); }
+.col-card .item-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.col-card .item-title a {
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+.col-card .item-title a:hover {
+  color: var(--link);
+  border-bottom-color: var(--link);
+}
+.col-card .item-meta {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.col-card .item-summary {
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: #333;
+}
+.col-card .item-tags {
+  margin-top: 6px;
+}
+.tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  background: #e8e0d6;
+  color: var(--muted);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-right: 3px;
+  margin-bottom: 3px;
+}
+.col-card .item-bg, .col-card .item-disc {
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: #f9f6f2;
+  border-left: 3px solid var(--border);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: #444;
+}
+.col-card .item-bg .label, .col-card .item-disc .label {
+  font-weight: 700;
+  color: var(--link);
+  margin-bottom: 3px;
+  font-size: 0.76rem;
+}
+
+footer {
+  text-align: center;
+  padding: 20px 0;
+  margin-top: 32px;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+@media (max-width: 960px) {
+  .sidebar, .resize-handle { display: none; }
+  .headline-zone { grid-template-columns: 1fr; }
+  .page-indicator { left: 20px; }
+}
+@media (max-width: 600px) {
+  .page { padding: 16px; }
+  .front-page-header h1 { font-size: 1.6rem; }
+  .picks-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<nav class="sidebar" id="sidebar">
+  <div class="brand">HORIZON</div>
+  <div class="nav-pages">
+    <button class="nav-page-btn active" data-page="0" onclick="goPage(0)">
+      头版
+    </button>
+
+    
+    
+    <button class="nav-page-btn" data-page="1" onclick="goPage(1)">
+      头条速递 <span class="count">24</span>
+    </button>
+    <div class="nav-items-list">
+      
+        
+        <div class="nav-sub-topic">
+          <div class="nav-sub-label">模型发布与开源</div>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-1')"
+             data-card="sec-1-st-1">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">Cursor 自研模型性能反超 Opus 4.6 且成本大幅降低</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-2')"
+             data-card="sec-1-st-2">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">阿里发布 Qwen3.5-Max 预览版，跻身全球顶尖行列</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-3')"
+             data-card="sec-1-st-3">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">月之暗面用注意力机制替换 Transformer 残差连接</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-4')"
+             data-card="sec-1-st-4">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">Kimi.ai 确认 Cursor Composer 2 基于 Kimi-k2.5 并通过合作构建</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-5')"
+             data-card="sec-1-st-5">
+            
+            <span class="nav-score s-mid">7</span>
+            
+            <span class="nav-title">Hugging Face 发布 Mellea 0.4.0 及全新 Granite Libraries</span>
+          </a>
+          
+        </div>
+        
+        <div class="nav-sub-topic">
+          <div class="nav-sub-label">本地推理与量化</div>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-1')"
+             data-card="sec-1-st-1">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">量化端侧模型在新基准测试中超越 Whisper Large v3</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-2')"
+             data-card="sec-1-st-2">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">Inline Visualizer 让本地大模型无需云端即可渲染交互式界面组件</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-3')"
+             data-card="sec-1-st-3">
+            
+            <span class="nav-score s-mid">7</span>
+            
+            <span class="nav-title">交互式网页工具实时可视化 GPT-2 的激活值与注意力机制</span>
+          </a>
+          
+        </div>
+        
+        <div class="nav-sub-topic">
+          <div class="nav-sub-label">AI 智能体与工具</div>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-1')"
+             data-card="sec-1-st-1">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">Hugging Face 与 NVIDIA 发布快速领域专用嵌入模型微调指南</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-2')"
+             data-card="sec-1-st-2">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">Cursor Composer 2.0 被证实基于月之暗面的 Kimi 模型</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-3')"
+             data-card="sec-1-st-3">
+            
+            <span class="nav-score s-mid">7</span>
+            
+            <span class="nav-title">neuropt：利用训练曲线进行 LLM 引导的超参数优化</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-4')"
+             data-card="sec-1-st-4">
+            
+            <span class="nav-score s-mid">7</span>
+            
+            <span class="nav-title">Google AI Studio 推出氛围编程功能，支持自然语言生成应用</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-5')"
+             data-card="sec-1-st-5">
+            
+            <span class="nav-score s-mid">7</span>
+            
+            <span class="nav-title">Claude Code 推出 Channels 功能，支持通过 Telegram 和 Discord 远程控制</span>
+          </a>
+          
+        </div>
+        
+        <div class="nav-sub-topic">
+          <div class="nav-sub-label">基准评估与研究</div>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-1')"
+             data-card="sec-1-st-1">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">使用自动标签训练导致医疗 AI 性能因偏见下降 66%</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-2')"
+             data-card="sec-1-st-2">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">Sakana AI 推出 Doc-to-LoRA 实现即时上下文内化</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-3')"
+             data-card="sec-1-st-3">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">Qwen3.5-9B 在文档基准测试中超越 Mistral Small 4 和 GPT-4.1</span>
+          </a>
+          
+        </div>
+        
+        <div class="nav-sub-topic">
+          <div class="nav-sub-label">安全政策与漏洞</div>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-1')"
+             data-card="sec-1-st-1">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">美国起诉三人涉嫌向中国走私价值 25 亿美元的英伟达 AI 服务器</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-2')"
+             data-card="sec-1-st-2">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">Le Monde 通过健身应用数据实时追踪法国航空母舰</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-3')"
+             data-card="sec-1-st-3">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">苹果确认 iOS 13 和 14 存在严重 WebKit 漏洞</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-4')"
+             data-card="sec-1-st-4">
+            
+            <span class="nav-score s-mid">7</span>
+            
+            <span class="nav-title">谷歌测试在搜索结果中用 AI 改写网页标题</span>
+          </a>
+          
+        </div>
+        
+        <div class="nav-sub-topic">
+          <div class="nav-sub-label">行业动态与基建</div>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-1')"
+             data-card="sec-1-st-1">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">黄仁勋：每一家工业企业都将成为机器人公司</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-2')"
+             data-card="sec-1-st-2">
+            
+            <span class="nav-score s-mid">7</span>
+            
+            <span class="nav-title">杰夫·贝佐斯宣布计划构建轨道数据中心巨型星座</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-3')"
+             data-card="sec-1-st-3">
+            
+            <span class="nav-score s-mid">7</span>
+            
+            <span class="nav-title">谷歌启动 Gemini Mac 原生应用私人内测</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(1);scrollToCard('sec-1-st0-4')"
+             data-card="sec-1-st-4">
+            
+            <span class="nav-score s-mid">7</span>
+            
+            <span class="nav-title">OpenAI 计划推出整合 ChatGPT、Codex 与 Atlas 的桌面超级应用</span>
+          </a>
+          
+        </div>
+        
+      
+    </div>
+    
+    
+    <button class="nav-page-btn" data-page="2" onclick="goPage(2)">
+      关注动态 <span class="count">3</span>
+    </button>
+    <div class="nav-items-list">
+      
+        
+        <a class="nav-item" href="javascript:void(0)"
+           onclick="goPage(2);scrollToCard('sec-2-1')"
+           data-card="sec-2-1">
+          
+          <span class="nav-title">MemSearch Updates: 3 updates — bump ccplugin version to 0.2.7, Merge pull request #201 from fabiosiqueira/fix/orphaned-index-milvus-…, Merge pull request #200 from kottj/fix/stop-hook-config-api-key-fallback</span>
+        </a>
+        
+        <a class="nav-item" href="javascript:void(0)"
+           onclick="goPage(2);scrollToCard('sec-2-2')"
+           data-card="sec-2-2">
+          
+          <span class="nav-title">openai/codex: 4 releases — rust-v0.117.0-alpha.5, rust-v0.117.0-alpha.3, rusty-v8-v146.4.0</span>
+        </a>
+        
+        <a class="nav-item" href="javascript:void(0)"
+           onclick="goPage(2);scrollToCard('sec-2-3')"
+           data-card="sec-2-3">
+          
+          <span class="nav-title">anthropics/claude-code released v2.1.80</span>
+        </a>
+        
+      
+    </div>
+    
+    
+    <button class="nav-page-btn" data-page="3" onclick="goPage(3)">
+      GitHub 热榜 <span class="count">24</span>
+    </button>
+    <div class="nav-items-list">
+      
+        
+        <div class="nav-sub-topic">
+          <div class="nav-sub-label">模型优化推理</div>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-1')"
+             data-card="sec-3-st-1">
+            
+            <span class="nav-score s-high">10</span>
+            
+            <span class="nav-title">Unsloth 加速本地大模型的训练与推理</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-2')"
+             data-card="sec-3-st-2">
+            
+            <span class="nav-score s-high">10</span>
+            
+            <span class="nav-title">SageAttention 通过量化实现 2-5 倍加速</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-3')"
+             data-card="sec-3-st-3">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">LightRAG：快速图向量混合检索增强生成框架</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-4')"
+             data-card="sec-3-st-4">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">阿里巴巴开源高性能推理引擎 RTP-LLM</span>
+          </a>
+          
+        </div>
+        
+        <div class="nav-sub-topic">
+          <div class="nav-sub-label">CUDA 高性能计算</div>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-1')"
+             data-card="sec-3-st-1">
+            
+            <span class="nav-score s-high">10</span>
+            
+            <span class="nav-title">Instant-NGP：通过哈希编码实现闪电般速度的神经辐射场</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-2')"
+             data-card="sec-3-st-2">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">DeepEP：面向 MoE 训练的高性能专家并行通信库</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-3')"
+             data-card="sec-3-st-3">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">面向 Mamba 的优化因果一维卷积 CUDA 内核</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-4')"
+             data-card="sec-3-st-4">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">NVIDIA cuVS 加速 GPU 向量搜索与聚类</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-5')"
+             data-card="sec-3-st-5">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">NVIDIA cuOpt：GPU 加速决策优化库</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-6')"
+             data-card="sec-3-st-6">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">面向深度学习的 CUDA 加速可微分 SSIM 库</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-7')"
+             data-card="sec-3-st-7">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">从零构建的教育级 CUDA SGEMM 实现集合</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-8')"
+             data-card="sec-3-st-8">
+            
+            <span class="nav-score s-mid">7</span>
+            
+            <span class="nav-title">CUDA 算法优化技术的实战指南</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-9')"
+             data-card="sec-3-st-9">
+            
+            <span class="nav-score s-mid">7</span>
+            
+            <span class="nav-title">GPUMD：支持机器学习势函数的高性能 GPU 分子动力学引擎</span>
+          </a>
+          
+        </div>
+        
+        <div class="nav-sub-topic">
+          <div class="nav-sub-label">AI 智能体应用</div>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-1')"
+             data-card="sec-3-st-1">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">LangChain 发布用于内部编码代理的 Open SWE 框架</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-2')"
+             data-card="sec-3-st-2">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">阿里开源 OpenSandbox 保障 AI 智能体执行安全</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-3')"
+             data-card="sec-3-st-3">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">Claude HUD：实时智能体可观测性插件</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-4')"
+             data-card="sec-3-st-4">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">GSD：防止大模型上下文退化的规范驱动框架</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-5')"
+             data-card="sec-3-st-5">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">TradingAgents：用于协作金融的多智能体大语言模型框架</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-6')"
+             data-card="sec-3-st-6">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">MiroThinker：高性能深度研究智能体框架</span>
+          </a>
+          
+        </div>
+        
+        <div class="nav-sub-topic">
+          <div class="nav-sub-label">研发工具与设施</div>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-1')"
+             data-card="sec-3-st-1">
+            
+            <span class="nav-score s-high">9</span>
+            
+            <span class="nav-title">微软 Qlib 集成 RD-Agent 实现量化研发自动化</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-2')"
+             data-card="sec-3-st-2">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">Newton：基于 NVIDIA Warp 的机器人 GPU 加速物理引擎</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-3')"
+             data-card="sec-3-st-3">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">GitHub Spec Kit 通过规范驱动开发遏制 AI 随意编程</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-4')"
+             data-card="sec-3-st-4">
+            
+            <span class="nav-score s-mid">8</span>
+            
+            <span class="nav-title">SigNoz：Datadog 的开源可观测性替代方案</span>
+          </a>
+          
+          <a class="nav-item" href="javascript:void(0)"
+             onclick="goPage(3);scrollToCard('sec-3-st0-5')"
+             data-card="sec-3-st-5">
+            
+            <span class="nav-score s-mid">7</span>
+            
+            <span class="nav-title">OpenDataLoader PDF：面向 RAG 的高精度多语言解析器</span>
+          </a>
+          
+        </div>
+        
+      
+    </div>
+    
+  </div>
+</nav>
+
+<div class="resize-handle" id="resizeHandle"></div>
+
+<!-- ── Pages ── -->
+<div class="pages-wrapper" id="pagesWrapper">
+
+  <!-- Page 0: Front Page -->
+  <div class="page active" data-page-idx="0">
+    <div class="front-page-header">
+      <h1>HORIZON 日报</h1>
+      <div class="date-line">2026-03-21</div>
+      <div class="stats">
+        <div>抓取 <span>124</span> 条</div>
+        <div>精选 <span>51</span> 条</div>
+      </div>
+    </div>
+
+    
+    
+    <div class="front-section">
+      <div class="picks-label">
+        <a href="javascript:void(0)" onclick="goPage(1)" class="section-link">头条速递</a>
+        <span class="section-total">共 24 条 →</span>
+      </div>
+      
+      <div class="headline-zone">
+        
+        <div class="headline-card">
+          
+          <span class="hl-score score-high">9.0</span>
+          
+          <div class="hl-title"><a href="https://www.qbitai.com/2026/03/389673.html" target="_blank" rel="noopener">Cursor 自研模型性能反超 Opus 4.6 且成本大幅降低</a></div>
+          
+          <div class="hl-summary">Cursor 发布了一款全新的自研大语言模型，其在关键代码基准测试中的表现超越了 Anthropic 的旗舰模型 Claude Opus 4.6。这一突破得益于引入了一种专为代码生成任务优化的新型强化学习方法。此外，新模型的定价相比现有高性能替代品大幅降低，使得先进的 AI 编程辅助更加普及。 这一进展标志着 AI 开发者工具领域的重大转变，挑战了此前在 SWE-bench 等基准测试中占据最先进地位的 Claude Opus 4.6 等成熟模型的主导地位。通过将卓越的性能与大幅降低的成本相结合，Cursor 有望让个人开发者和小型团队也能用上顶级的编程 AI。其定制强化学习方法的成功表明，专门的训练方法可能很快将取代单纯的模型规模，成为能力驱动的主要因素。最终，这种竞争可能会迫使其他提供商加快创新或降低价格以保持竞争力。 核心创新在于一种特定的强化学习框架，该方法可能与单元测试生成功能协同进化，这与该领域最近的学术进展类似。虽然摘要中未详述具体的基准测试百分比，但据报道该模型的得分超过了 Opus 4.6 相关的 80.8% SWE-bench 分数。成本降幅被描述为巨大，这可能会改变将 AI 深度集成到开发工作流中的经济可行性。用户预计该模型将直接集成到 Cursor IDE 中，以无缝提升生产力。</div>
+          
+          <div class="hl-meta">rss · 量子位 · 2026-03-20 04:09</div>
+        </div>
+        
+        <div class="headline-card">
+          
+          <span class="hl-score score-high">9.0</span>
+          
+          <div class="hl-title"><a href="https://www.qbitai.com/2026/03/389610.html" target="_blank" rel="noopener">阿里发布 Qwen3.5-Max 预览版，跻身全球顶尖行列</a></div>
+          
+          <div class="hl-summary">阿里巴巴正式发布了 Qwen3.5-Max 的预览版，该模型据报位列全球前五强的大型语言模型。此次发布标志着继 2026 年 1 月推出 Qwen3-Max-Thinking 之后的重大升级，巩固了阿里在中国人工智能领域的领先地位。新模型延续了该系列提供开源权重版本和云端服务的传统。 此次发布意义重大，因为它表明中国在缩小与领先西方 AI 模型差距方面取得了快速进展，可能重塑全球竞争格局。通过跻身全球前五，Qwen3.5-Max 为企业提供了强大的本土替代方案，用于处理复杂的推理和多模态任务，而无需依赖国外供应商。该发布还突显了行业向混合思维模式发展的趋势，允许用户在推理深度、推断速度和成本之间取得平衡。此外，它进一步加强了阿里云的生态系统，吸引更多开发者在其基础设施上进行构建。 Qwen3.5 系列包含如 35B-A3B 等特定变体，支持高达 262,144 token 的上下文长度，并可使用 vLLM 结合张量并行进行部署。基于 Qwen3 架构，这些模型采用了混合思维模式（&#34;Thinking&#34;和&#34;Non-Thinking&#34;），以灵活控制性能和成本。该模型具备生成文本、图像和视频的能力，并拥有先进的自主搜索和自我优化逻辑功能。</div>
+          
+          <div class="hl-meta">rss · 量子位 · 2026-03-20 02:11</div>
+        </div>
+        
+      </div>
+      <div class="picks-grid">
+        
+        <div class="pick-card">
+          <div class="pick-header">
+            
+            <span class="score-badge score-high">9.0</span>
+            
+            <div class="pick-title"><a href="https://www.qbitai.com/2026/03/389569.html" target="_blank" rel="noopener">黄仁勋：每一家工业企业都将成为机器人公司</a></div>
+          </div>
+          
+          <div class="pick-summary">英伟达 CEO 黄仁勋宣布，在物理 AI 的驱动下，每一家工业企业都将不可避免地转型为机器人公司。为了支持这一转变，英伟达发布了一整套物理 AI 基础设施工具，旨在弥合数字智能与物理行动之间的鸿沟。这套新栈集成了先进的仿真、机器人学习框架和加速计算技术，以实现自主系统在现实环境中的部署。 这一声明标志着一个根本性的范式转变，即人工智能超越了虚拟数据处理，通过具身智能体直接操控物理世界。通过提供全栈基础设施，英伟达旨在降低传统行业采用机器人的门槛，从而可能加速制造业、物流业和重工业的自动化进程。此举将物理 AI 定位为半导体和工业部门的下一个主要增长引擎，其影响力可与生成式 AI 对软件行业的冲击相媲美。这表明，未来工业企业的竞争力将取决于其将智能机器整合到核心运营中的能力。 新发布的基础设施建立在 NVIDIA Isaac 平台之上，该平台包括用于训练自主移动机器人和机械臂的仿真环境及 Isaac Lab 等机器人学习框架。该解决方案利用 NVIDIA CUDA 加速库和参考工作流，简化了人形机器人及其他复杂机器人系统的开发过程。这些工具旨在作为一个连贯的生态系统运行，允许开发者在实际物理部署之前，在数据中心规模上进行模拟、训练和模型部署。</div>
+          
+          <div class="pick-meta">rss · 量子位 · 2026-03-20 00:52</div>
+        </div>
+        
+        <div class="pick-card">
+          <div class="pick-header">
+            
+            <span class="score-badge score-high">9.0</span>
+            
+            <div class="pick-title"><a href="https://old.reddit.com/r/MachineLearning/comments/1rz748k/medical_ai_gets_66_worse_when_you_use_automated/" target="_blank" rel="noopener">使用自动标签训练导致医疗 AI 性能因偏见下降 66%</a></div>
+          </div>
+          
+          <div class="pick-summary">一项在 ISBI 2026 上发表的新研究揭示，使用自动标签训练医疗分割模型会导致年轻乳腺癌患者的模型性能相比清洁数据训练的模型下降 66%。研究发现，这种下降不仅仅归因于更高的乳腺密度，而是源于年轻患者肿瘤特征的质性差异，而自动标签无法准确捕捉这些差异。此外，该研究揭露了“有偏见的尺子”效应，即使用同样有缺陷的自动标签作为标准基准掩盖了性能退化的真实程度。 这一发现至关重要，因为它表明依赖可扩展但不完美的自动标签可能会将人口统计学偏见放大高达 40%，直接威胁年轻患者的健康公平。它挑战了当前行业同时使用自动注释进行训练和评估的做法，显示这种方法可能产生模型可靠性的虚假安全感。如果不加以解决，这些隐藏的故障可能导致特定人群（那些在医疗结果中已面临差异的人群）的误诊或治疗延误。最终，这要求医疗 AI 的开发和基准测试转向获取高质量、专家验证的标签。 该研究特别指出，这种偏见是质性的，因为年轻患者的肿瘤更大且更多变，使得基于噪声自动数据训练的模型从根本上难以学习。当使用相同的有偏见自动标签进行评估时，性能指标看起来正常，这说明了“有偏见的尺子”效应，即地面真值本身存在缺陷。该论文被接受为 2026 年国际生物医学成像研讨会（ISBI）的口头报告，突显了其对研究社区的重要性。</div>
+          
+          <div class="pick-meta">rss · r/MachineLearning · 2026-03-20 20:20</div>
+        </div>
+        
+        <div class="pick-card">
+          <div class="pick-header">
+            
+            <span class="score-badge score-high">9.0</span>
+            
+            <div class="pick-title"><a href="https://old.reddit.com/r/MachineLearning/comments/1rz94na/p_quantized_ondevice_models_beat_whisper_large_v3/" target="_blank" rel="noopener">量化端侧模型在新基准测试中超越 Whisper Large v3</a></div>
+          </div>
+          
+          <div class="pick-summary">speech-swift 库发布的最新基准测试显示，在 LibriSpeech test-clean 数据集上，量化的 Qwen3-ASR 和 Parakeet TDT 模型的词错误率（WER）低于 Whisper Large v3 (FP16)。具体而言，8 位 Qwen3-ASR 1.7B 模型的 WER 为 2.35%，优于 Whisper 的 2.7%，且体积小 26%，其编码器预训练了约 4000 万小时的音频数据。此外，Parakeet TDT INT8 模型作为专为 Apple Neural Engine 优化的 634 MB CoreML 模型，也达到了 2.74% 的 WER。 这些结果挑战了只有像 Whisper 这样的大型服务器级模型才能实现最先进语音识别准确率的假设。通过证明更小、量化的模型完全可以在端侧运行并具有更高的效率，这项工作使得在 Mac 等消费级硬件上部署更快、保护隐私的 AI 应用成为可能，而无需依赖云端 API。大型音频语言模型（LALM）范式的成功表明，利用海量预训练数据和 LLM 解码器比传统的交叉注意力机制更能有效解决声学歧义。这一转变可能显著降低开发者在生产环境中部署语音转文字功能时的延迟和运营成本。 研究指出的一个关键限制是，4 位量化会导致非英语语言（如韩语）的性能灾难性下降，其 WER 从 6.89% 激增至 19.95%，而英语性能则保持稳定。Qwen3-ASR 模型受益于 AuT 编码器，其预训练数据量约为 Whisper 的 60 倍，使其贪婪解码的准确率能与束搜索相媲美。Parakeet TDT 架构通过联合网络将编码器帧直接映射到令牌，避免了自回归循环和生成性幻觉。所有基准测试结果均可使用提供的脚本完全复现，在 M2 Max 芯片上运行大约需要 15 分钟。</div>
+          
+          <div class="pick-meta">rss · r/MachineLearning · 2026-03-20 21:39</div>
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    
+    <div class="front-section">
+      <div class="picks-label">
+        <a href="javascript:void(0)" onclick="goPage(2)" class="section-link">关注动态</a>
+        <span class="section-total">共 3 条 →</span>
+      </div>
+      
+      <div class="picks-grid">
+        
+        <div class="pick-card">
+          <div class="pick-header">
+            
+            <div class="pick-title"><a href="https://github.com/zilliztech/memsearch/commit/cd67906f4885f8e4a0d3442b4dd71a31afa4fb7d" target="_blank" rel="noopener">MemSearch Updates: 3 updates — bump ccplugin version to 0.2.7, Merge pull request #201 from fabiosiqueira/fix/orphaned-index-milvus-…, Merge pull request #200 from kottj/fix/stop-hook-config-api-key-fallback</a></div>
+          </div>
+          
+          <div class="pick-summary">本次更新将 ccplugin 依赖升级至 0.2.7 版本，并修复了两个关键的配置问题。具体包括解决了 Milvus 清理操作中遗留孤立索引的缺陷，以及修正了停止钩子配置中的 API 密钥回退逻辑。这些改动提升了资源管理的可靠性，并确保服务关闭时认证配置能正确生效。</div>
+          
+          <div class="pick-meta">rss · MemSearch Updates · 2026-03-20 02:52</div>
+        </div>
+        
+        <div class="pick-card">
+          <div class="pick-header">
+            
+            <div class="pick-title"><a href="https://github.com/openai/codex/releases/tag/rust-v0.117.0-alpha.5" target="_blank" rel="noopener">openai/codex: 4 releases — rust-v0.117.0-alpha.5, rust-v0.117.0-alpha.3, rusty-v8-v146.4.0</a></div>
+          </div>
+          
+          <div class="pick-summary">该仓库发布了四个新的预发布版本，将 Rust 集成更新至 v0.117.0-alpha.5，并将 rusty-v8 绑定更新至 v146.4.0。这些快速迭代的发布（从 alpha.2 到 alpha.5）可能包含针对底层 JavaScript 引擎绑定的增量稳定性改进和错误修复。使用 Rust 组件的开发者应升级到最新的 alpha 版本以确保与更新后的 V8 引擎兼容，尽管发布说明中未详述具体的破坏性变更。</div>
+          
+          <div class="pick-meta">github · 2026-03-20 07:54</div>
+        </div>
+        
+        <div class="pick-card">
+          <div class="pick-header">
+            
+            <div class="pick-title"><a href="https://github.com/anthropics/claude-code/releases/tag/v2.1.80" target="_blank" rel="noopener">anthropics/claude-code released v2.1.80</a></div>
+          </div>
+          
+          <div class="pick-summary">此版本引入了重要的扩展性和可观测性功能，包括用于状态行脚本的 `rate_limits` 字段、通过 settings.json 声明的内联插件，以及用于 MCP 服务器消息推送的实验性 `--channels` 标志。关键稳定性修复解决了语音模式 WebSocket 故障、会话恢复时并行工具结果丢失以及 API 代理流式传输错误等问题。性能方面进行了优化，降低了大型仓库的启动内存占用并提升了自动补全响应速度。此外，修复了受管设置在缓存存在时无法在启动时应用的问题，确保策略强制配置能正确生效。</div>
+          
+          <div class="pick-meta">github · 2026-03-19 22:08</div>
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    
+    <div class="front-section">
+      <div class="picks-label">
+        <a href="javascript:void(0)" onclick="goPage(3)" class="section-link">GitHub 热榜</a>
+        <span class="section-total">共 24 条 →</span>
+      </div>
+      
+      <div class="picks-grid">
+        
+        <div class="pick-card">
+          <div class="pick-header">
+            
+            <span class="score-badge score-high">10.0</span>
+            
+            <div class="pick-title"><a href="https://github.com/unslothai/unsloth" target="_blank" rel="noopener">Unsloth 加速本地大模型的训练与推理</a></div>
+          </div>
+          
+          <div class="pick-summary">Unsloth 推出了统一的 Web 界面（Studio）及其核心库，旨在简化本地运行和训练超过 500 种开源模型的过程。它现在支持包括音频、视觉和文档解析在内的多模态输入，同时以显著降低的显存需求实现了高效的强化学习。 该工具对 AI 工程师至关重要，因为它重写了关键的大语言模型模块，相比标准的 Hugging Face 实现，实现了高达 2 倍的训练速度和减少 70% 的显存占用。通过使全量微调和 QLoRA 等高级技术在消费级 GPU 上变得可行，它普及了尖端模型定制的使用。可视化界面的加入降低了数据准备和实验跟踪的门槛，同时并未牺牲代码级别的控制能力。 Unsloth 支持 4 位、16 位和 FP8 训练格式，同时在 Llama 3、Qwen 和 Gemma 等模型上保持精度不变。其主要功能包括自愈式工具调用、代码执行沙箱以及从 PDF 和 DOCX 等多种文件格式自动创建数据集。</div>
+          
+          <div class="pick-meta">rss · GitHub Trending - Daily · 2026-03-20 01:31</div>
+        </div>
+        
+        <div class="pick-card">
+          <div class="pick-header">
+            
+            <span class="score-badge score-high">10.0</span>
+            
+            <div class="pick-title"><a href="https://github.com/NVlabs/instant-ngp" target="_blank" rel="noopener">Instant-NGP：通过哈希编码实现闪电般速度的神经辐射场</a></div>
+          </div>
+          
+          <div class="pick-summary">Instant-NGP 引入了一种多分辨率哈希编码技术，将神经辐射场（NeRF）的训练时间从数小时大幅缩短至数秒。该框架利用 CUDA 内核优化了神经网络架构和输入表示，以最大化 GPU 效率。它实现了实时渲染和交互式场景编辑，这在标准的 NeRF 实现中以前是不可能做到的。 早期的 NeRF 方法受限于极长的训练时间，限制了其在动态环境或迭代设计工作流中的实际应用。Instant-NGP 通过高效的空间数据结构解决了收敛速度慢的瓶颈，使高保真 3D 重建能够应用于 VR 和游戏等实时场景。这一转变将 NeRF 从纯粹的研究概念转化为生产图形流水线中可行的工具。因此，它已成为现代 3D AI 研发的基础设施。 其核心创新是一个可学习的多分辨率哈希表，它将空间坐标映射到特征向量，使网络仅在必要的地方关注细节。该系统完全使用 CUDA/C++ 实现以确保底层性能，并提供 Python 绑定以便轻松集成到现有的深度学习工作流中。除了 NeRF，它还支持多种图元，包括神经表面和符号距离场，所有这些都受益于相同的加速策略。</div>
+          
+          <div class="pick-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+        </div>
+        
+        <div class="pick-card">
+          <div class="pick-header">
+            
+            <span class="score-badge score-high">10.0</span>
+            
+            <div class="pick-title"><a href="https://github.com/thu-ml/SageAttention" target="_blank" rel="noopener">SageAttention 通过量化实现 2-5 倍加速</a></div>
+          </div>
+          
+          <div class="pick-summary">SageAttention 引入了一种新型量化注意力机制，在语言、图像和视频模型上实现了比 FlashAttention 快 2-5 倍的性能。与以往的量化尝试不同，它在几乎不损失端到端精度的情况下，显著降低了推理延迟。 这一突破直接解决了生产级 AI 系统中注意力操作的计算瓶颈，为在资源受限硬件上部署大型 Transformer 模型提供了可行路径。通过在牺牲质量的情况下超越 FlashAttention，它加快了生成式 AI 应用的迭代周期并降低了运营成本。其有效处理异常值的能力使其在文本之外的多模态任务中同样稳健。 该库利用专为 CUDA 内核优化的 INT8 和 INT4 量化技术以最大化吞吐量。它被设计为标准注意力模块的直接替代品，支持以最小的代码更改集成到现有工作流中。在长上下文场景中，性能提升最为显著，因为这些场景通常受限于内存带宽。</div>
+          
+          <div class="pick-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+        </div>
+        
+        <div class="pick-card">
+          <div class="pick-header">
+            
+            <span class="score-badge score-high">9.0</span>
+            
+            <div class="pick-title"><a href="https://github.com/langchain-ai/open-swe" target="_blank" rel="noopener">LangChain 发布用于内部编码代理的 Open SWE 框架</a></div>
+          </div>
+          
+          <div class="pick-summary">LangChain 推出了 Open SWE，这是一个旨在帮助组织构建和部署异步编码代理的开源框架。该框架基于 LangGraph 和 Deep Agents 构建，复现了 Stripe 和 Coinbase 等顶尖工程团队使用的架构。它提供了用于云沙箱、Slack 集成和自动创建拉取请求的开箱即用组件。 此次发布让以前只有少数大型科技公司才能定制的生产级自主代理架构变得普及。通过提供可组合的框架而非僵化的产品，它允许工程组织根据其特定的内部工作流程定制安全边界和工具权限。这显著降低了团队实施无需人工持续干预的“发射后不管”式编码代理的门槛。最终，它将行业焦点从交互式编码助手转向了完全异步的背景软件开发流程。 Open SWE 利用隔离的云沙箱（支持 Modal 和 Daytona 等提供商），确保每个任务都在受控环境中运行，杜绝生产环境访问风险。它具有模块化的代理 harness，允许开发者在保持上游更新路径的同时，自定义编排、工具和中间件。该系统支持与 Slack 等通信平台和 Linear 等项目管理工具的原生集成，以实现无缝调用。</div>
+          
+          <div class="pick-meta">rss · GitHub Trending - Daily · 2026-03-20 01:31</div>
+        </div>
+        
+        <div class="pick-card">
+          <div class="pick-header">
+            
+            <span class="score-badge score-high">9.0</span>
+            
+            <div class="pick-title"><a href="https://github.com/alibaba/OpenSandbox" target="_blank" rel="noopener">阿里开源 OpenSandbox 保障 AI 智能体执行安全</a></div>
+          </div>
+          
+          <div class="pick-summary">阿里巴巴发布了 OpenSandbox，这是一个旨在安全运行代码执行和 GUI 交互等 AI 智能体任务的通用平台。它提供了统一的 API 和多语言 SDK，用于管理跨 Docker 和 Kubernetes 集群的沙箱环境。该项目专门针对代码智能体、强化学习训练和自主任务评估的生产需求。 随着 AI 智能体自主性的增强，不可信代码执行导致系统损坏或数据泄露的风险变得至关重要。OpenSandbox 通过提供基于 gVisor 和 Kata Containers 等安全容器运行时的强隔离性，填补了主要的 инфраструктура缺口。这使得工程师能够部署激进的强化学习循环和编码智能体，而无需牺牲主机安全性。通过标准化沙箱层，它减少了为每个新智能体应用构建自定义隔离解决方案的运营开销。 该平台支持多种场景，包括浏览器自动化、通过 VNC 实现的桌面环境以及安全的代码解释器。它具有统一的入口网关用于网络路由，并提供细粒度的出口控制以防止未经授权的外部访问。内置的高性能 Kubernetes 调度支持可实现大规模分布式智能体训练和评估工作流。</div>
+          
+          <div class="pick-meta">rss · GitHub Trending - Python · 2026-03-20 01:38</div>
+        </div>
+        
+      </div>
+      
+    </div>
+    
+
+    <footer>Horizon — AI-Driven Information Aggregation</footer>
+  </div>
+
+  <!-- Section Pages -->
+  
+  
+  <div class="page" data-page-idx="1">
+    <div class="section-header">
+      <h2>头条速递</h2>
+      <div class="section-count">共 24 条</div>
+    </div>
+
+    
+    
+    <div class="sub-topic-section">
+      <h3 class="sub-topic-title">模型发布与开源 <span class="sub-topic-count">5</span></h3>
+      <div class="columns-flow">
+        
+        <div class="col-card" id="sec-1-st0-1">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://www.qbitai.com/2026/03/389673.html" target="_blank" rel="noopener">Cursor 自研模型性能反超 Opus 4.6 且成本大幅降低</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · 量子位 · 2026-03-20 04:09</div>
+          
+          <div class="item-summary">Cursor 发布了一款全新的自研大语言模型，其在关键代码基准测试中的表现超越了 Anthropic 的旗舰模型 Claude Opus 4.6。这一突破得益于引入了一种专为代码生成任务优化的新型强化学习方法。此外，新模型的定价相比现有高性能替代品大幅降低，使得先进的 AI 编程辅助更加普及。 这一进展标志着 AI 开发者工具领域的重大转变，挑战了此前在 SWE-bench 等基准测试中占据最先进地位的 Claude Opus 4.6 等成熟模型的主导地位。通过将卓越的性能与大幅降低的成本相结合，Cursor 有望让个人开发者和小型团队也能用上顶级的编程 AI。其定制强化学习方法的成功表明，专门的训练方法可能很快将取代单纯的模型规模，成为能力驱动的主要因素。最终，这种竞争可能会迫使其他提供商加快创新或降低价格以保持竞争力。 核心创新在于一种特定的强化学习框架，该方法可能与单元测试生成功能协同进化，这与该领域最近的学术进展类似。虽然摘要中未详述具体的基准测试百分比，但据报道该模型的得分超过了 Opus 4.6 相关的 80.8% SWE-bench 分数。成本降幅被描述为巨大，这可能会改变将 AI 深度集成到开发工作流中的经济可行性。用户预计该模型将直接集成到 Cursor IDE 中，以无缝提升生产力。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">llm</span><span class="tag">reinforcement-learning</span><span class="tag">ai-development</span><span class="tag">code-generation</span><span class="tag">model-performance</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            Anthropic 于 2026 年初发布的 Claude Opus 4.6 目前被公认为是处理复杂编码任务和长上下文推理的领先模型。代码生成中的强化学习（RL）涉及利用编译器错误或单元测试结果等反馈循环来训练模型，从而使其输出质量超越仅靠监督学习所能达到的水平。最近的研究（包括 NeurIPS 2025 上展示的工作）表明，协同进化代码生成和测试创建能力可以显著提高在困难编程基准测试中的性能。Cursor 是一款以 AI 为先的代码编辑器，允许开发者在编码环境中直接与大型语言模型交互。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-2">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://www.qbitai.com/2026/03/389610.html" target="_blank" rel="noopener">阿里发布 Qwen3.5-Max 预览版，跻身全球顶尖行列</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · 量子位 · 2026-03-20 02:11</div>
+          
+          <div class="item-summary">阿里巴巴正式发布了 Qwen3.5-Max 的预览版，该模型据报位列全球前五强的大型语言模型。此次发布标志着继 2026 年 1 月推出 Qwen3-Max-Thinking 之后的重大升级，巩固了阿里在中国人工智能领域的领先地位。新模型延续了该系列提供开源权重版本和云端服务的传统。 此次发布意义重大，因为它表明中国在缩小与领先西方 AI 模型差距方面取得了快速进展，可能重塑全球竞争格局。通过跻身全球前五，Qwen3.5-Max 为企业提供了强大的本土替代方案，用于处理复杂的推理和多模态任务，而无需依赖国外供应商。该发布还突显了行业向混合思维模式发展的趋势，允许用户在推理深度、推断速度和成本之间取得平衡。此外，它进一步加强了阿里云的生态系统，吸引更多开发者在其基础设施上进行构建。 Qwen3.5 系列包含如 35B-A3B 等特定变体，支持高达 262,144 token 的上下文长度，并可使用 vLLM 结合张量并行进行部署。基于 Qwen3 架构，这些模型采用了混合思维模式（&#34;Thinking&#34;和&#34;Non-Thinking&#34;），以灵活控制性能和成本。该模型具备生成文本、图像和视频的能力，并拥有先进的自主搜索和自我优化逻辑功能。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">qwen</span><span class="tag">llm</span><span class="tag">alibaba</span><span class="tag">ai-models</span><span class="tag">china-ai</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            Qwen（通义千问）是阿里云开发的一系列大型语言模型，自诞生以来已历经多次迭代。Qwen 系列中的许多变体以 Apache-2.0 许可证作为开源权重模型分发，培育了广泛的开发者社区，而其他版本则作为阿里云上的托管服务提供。最近的版本如 Qwen3 引入了多模态能力和混合推理模式，以处理从编码到实时分析的各种企业工作负载。包括 2026 年初发布的 Qwen3-Max-Thinking 在内的持续发布周期，反映了阿里在快节奏的生成式 AI 市场中保持竞争力的战略。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-3">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://old.reddit.com/r/LocalLLaMA/comments/1ryt8e3/kimi_just_published_a_paper_replacing_residual/" target="_blank" rel="noopener">月之暗面用注意力机制替换 Transformer 残差连接</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · r/LocalLLaMA · 2026-03-20 11:03</div>
+          
+          <div class="item-summary">月之暗面（Kimi）发布了一篇论文，介绍了“注意力残差”（Attention Residuals），这是一种用选择性注意力机制替代标准残差连接的新架构，允许每一层有选择地关注之前所有层的输出。该方法解决了深度网络中的“信息稀释问题”，在推理基准测试中提升了 3-7.5 分，且其块状变体减少了 1.25 倍的计算需求。该方法的开销很低，训练成本增加不到 4%，推理延迟增加不到 2%。 这一进展意义重大，因为它挑战了自 2015 年以来基本未变的 Transformer 核心设计选择，有望在不增加模型大小的情况下提升性能。通过改善深度方向上的信息流动，该架构可能让较小的模型实现以往只有更大参数量模型才能达到的效果，从而惠及资源受限的部署场景。此外，由于据报道这是一种“即插即用”的替换方案，现有的开源权重模型可以通过重新训练而非完全重构架构来获得效率和能力的提升。这种转变表明，未来大语言模型的进步可能更多依赖于结构创新，而不仅仅是简单的缩放定律。 论文引入了一种“块状注意力残差”变体，将层分组，在块内使用普通残差，在块间使用注意力机制，以平衡性能和成本。对比显示，该方法所需的内存带宽仅为 DeepSeek 近期 mHC 方法的六分之一，同时提供了相当或更好的结果。然而，社区成员对潜在的量化敏感性表示担忧，因为层间学习到的注意力权重在低精度下可能比普通残差退化得更严重。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">transformer architecture</span><span class="tag">llm research</span><span class="tag">deep learning</span><span class="tag">model efficiency</span><span class="tag">moonshot ai</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            残差连接随 2015 年的 ResNet 提出并被 Transformer 采用，通过将层的输入加到其输出上，使梯度能够直接流过网络。在标准实现中，这些连接均匀地累加所有前驱层的输出，这可能导致“稀释问题”，即随着网络加深，早期信息会被淹没。虽然注意力机制长期以来一直被用于选择序列标记间的相关信息，但这项新工作将类似的选择逻辑应用到了网络的深度维度上。历史上，残差路径被视为固定的管道设施，因此这种沿深度轴的选择性注意力是一个新颖的概念转变。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            社区情绪非常积极，用户指出架构创新正变得比单纯的参数缩放更具影响力。讨论强调了 Kimi 的方法作为即插即用替换方案的优势，相比之下竞争对手如 DeepSeek 则需要结构性的大改，尽管也有人对量化如何影响新的注意力权重表示谨慎。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-4">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://simonwillison.net/2026/Mar/20/cursor-on-kimi/#atom-everything" target="_blank" rel="noopener">Kimi.ai 确认 Cursor Composer 2 基于 Kimi-k2.5 并通过合作构建</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · Simon Willison · 2026-03-20 20:29</div>
+          
+          <div class="item-summary">Kimi.ai 正式确认，Cursor 最新发布的 Composer 2 是通过授权商业合作伙伴关系，主要基于 Kimi-k2.5 模型构建的。该集成是通过对基础模型应用持续预训练（continued pretraining）和高算力强化学习（RL）实现的，推理服务托管在 Fireworks AI 平台上。这一声明证实了近期关于 Cursor 最新 AI 编程助手技术来源的报道。 这一进展突显了一个日益增长的趋势，即应用层 AI 工具利用来自不同提供商的强大开源权重模型，而不是完全从头开始训练。它展示了持续预训练和强化学习如何有效地将像 Kimi-k2.5 这样的通用模型改编为能够处理复杂工作流的专业编程助手。对于行业而言，这验证了中国模型开发商与西方 AI 工具制造商之间跨境商业合作伙伴关系的可行性。最终，这表明未来的生态系统将通过微调现有的最先进基础模型来快速部署专业代理。 此次合作利用 Fireworks AI 的托管平台进行模型的强化学习训练阶段以及最终的推理服务。Kimi-k2.5 本身是一个原生多模态代理模型，最初是在约 15 万亿个混合视觉和文本 token 上训练的。所采用的具体技术包括用于适应领域知识的持续预训练，以及用于优化模型在编码任务中决策能力的高算力强化学习。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">generative-ai</span><span class="tag">llm</span><span class="tag">ai-development</span><span class="tag">open-source</span><span class="tag">industry-news</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            持续预训练（Continued pretraining）是一种用于在现有大型语言模型上用新数据域进行进一步训练的技术，旨在专业化其能力而不丢失原始知识。在此语境下，强化学习（RL）指的是利用反馈信号训练模型，以提高其在特定任务（如生成正确代码或执行多步计划）上的性能。Kimi-k2.5 是 Moonshot AI 最近发布的开源模型，以其长上下文窗口以及在视觉推理和编码方面的强大性能而闻名。使用像 Fireworks AI 这样的第三方基础设施，使公司能够获得执行这些计算密集型训练方法所需的高性能 GPU 集群。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-5">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              7.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://huggingface.co/blog/ibm-granite/granite-libraries" target="_blank" rel="noopener">Hugging Face 发布 Mellea 0.4.0 及全新 Granite Libraries</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · Hugging Face Blog · 2026-03-20 14:14</div>
+          
+          <div class="item-summary">Hugging Face 宣布发布 Mellea 0.4.0，这是由 IBM Research 发起的开源研究项目，在 0.3.0 版本引入的工作流原语基础上进行了扩展。此次更新引入了用于构建生成式工作流的新架构模式，并实现了与新发布的 Granite Libraries 的原生集成。开发者现在可以在其 Mellea 项目中立即使用专用的 IBM Granite 模型，而无需更改现有架构。 此次发布标志着企业级开源 AI 开发的重要里程碑，因为它弥合了实验性研究工具与生产就绪模型部署之间的差距。原生集成使组织能够更轻松地利用 IBM 专用的 Granite 模型，从而可能加速稳健 AI 解决方案在企业环境中的采用。通过标准化生成式工作流的架构模式，此次更新可能会影响整个行业构建大规模 AI 应用的方式。它进一步巩固了 Hugging Face 作为社区驱动和企业聚焦 AI 创新中心的核心地位。 Mellea 0.4.0 直接建立在之前 0.3.0 版本中确立的基础库和工作流原语之上。此次更新特别侧重于扩展不同 AI 组件的组合表面，并引入最新的架构模式。一个关键的技术优势是与 Granite Libraries 的无缝兼容性，这在集成专用模型时消除了对架构重构的需求。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">open-source</span><span class="tag">enterprise-ai</span><span class="tag">hugging-face</span><span class="tag">ibm-granite</span><span class="tag">developer-tools</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            Mellea 是由 IBM Research 开发的开源研究项目，旨在帮助开发者构建和管理复杂的生成式 AI 工作流。IBM 的 Granite 系列是一组专为代码生成、IT 运维和法律分析等企业用例训练的开放基础模型家族。Hugging Face 作为托管这些模型的主要平台，提供了 AI 社区共享和改进模型所需的协作基础设施。从 0.3.0 到 0.4.0 的演变标志着构建企业 AI 应用的系统正朝着更加模块化和可互操作的方向发展。
+          </div>
+          
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="sub-topic-section">
+      <h3 class="sub-topic-title">本地推理与量化 <span class="sub-topic-count">3</span></h3>
+      <div class="columns-flow">
+        
+        <div class="col-card" id="sec-1-st0-1">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://old.reddit.com/r/MachineLearning/comments/1rz94na/p_quantized_ondevice_models_beat_whisper_large_v3/" target="_blank" rel="noopener">量化端侧模型在新基准测试中超越 Whisper Large v3</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · r/MachineLearning · 2026-03-20 21:39</div>
+          
+          <div class="item-summary">speech-swift 库发布的最新基准测试显示，在 LibriSpeech test-clean 数据集上，量化的 Qwen3-ASR 和 Parakeet TDT 模型的词错误率（WER）低于 Whisper Large v3 (FP16)。具体而言，8 位 Qwen3-ASR 1.7B 模型的 WER 为 2.35%，优于 Whisper 的 2.7%，且体积小 26%，其编码器预训练了约 4000 万小时的音频数据。此外，Parakeet TDT INT8 模型作为专为 Apple Neural Engine 优化的 634 MB CoreML 模型，也达到了 2.74% 的 WER。 这些结果挑战了只有像 Whisper 这样的大型服务器级模型才能实现最先进语音识别准确率的假设。通过证明更小、量化的模型完全可以在端侧运行并具有更高的效率，这项工作使得在 Mac 等消费级硬件上部署更快、保护隐私的 AI 应用成为可能，而无需依赖云端 API。大型音频语言模型（LALM）范式的成功表明，利用海量预训练数据和 LLM 解码器比传统的交叉注意力机制更能有效解决声学歧义。这一转变可能显著降低开发者在生产环境中部署语音转文字功能时的延迟和运营成本。 研究指出的一个关键限制是，4 位量化会导致非英语语言（如韩语）的性能灾难性下降，其 WER 从 6.89% 激增至 19.95%，而英语性能则保持稳定。Qwen3-ASR 模型受益于 AuT 编码器，其预训练数据量约为 Whisper 的 60 倍，使其贪婪解码的准确率能与束搜索相媲美。Parakeet TDT 架构通过联合网络将编码器帧直接映射到令牌，避免了自回归循环和生成性幻觉。所有基准测试结果均可使用提供的脚本完全复现，在 M2 Max 芯片上运行大约需要 15 分钟。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">speech-recognition</span><span class="tag">model-quantization</span><span class="tag">on-device-ai</span><span class="tag">benchmarking</span><span class="tag">llm</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            Whisper Large v3 一直是自动语音识别（ASR）领域占主导地位的开源模型，通常需要大量的计算资源，且常在服务器上以 FP16 精度运行。大型音频语言模型（LALM）代表了一种新的架构趋势，它将音频编码器与强大的基于文本的大语言模型（LLM）解码器集成，利用广泛的语言上下文进行消歧。转录器模型，特别是 Parakeet 使用的 Token Duration Transducer (TDT)，与标准的 RNN-Transducer 不同，它通过预测令牌持续时间来跳过空白帧，从而实现更快的推理速度。量化是一种通过降低权重精度来减小模型体积并提高速度的技术，但有时会导致准确率下降，尤其是在多语言场景中。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-2">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://old.reddit.com/r/LocalLLaMA/comments/1ryz423/your_local_model_can_now_render_interactive/" target="_blank" rel="noopener">Inline Visualizer 让本地大模型无需云端即可渲染交互式界面组件</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · r/LocalLLaMA · 2026-03-20 15:19</div>
+          
+          <div class="item-summary">一个名为&#39;Inline Visualizer&#39;的全新开源项目正式发布，该项目采用 BSD-3 许可证，允许本地运行的大模型在聊天界面中直接生成交互式图表、示意图和表单。该工具通过提供一套设计系统和渲染工具，将任何支持工具调用（tool calling）的模型（如 Qwen、Mistral 或 Llama）生成的 HTML/SVG 片段封装成带有主题风格的界面。最关键的是，它注入了一座 JavaScript 桥梁，使得可视化内容内部的元素能够向 AI 发送消息，从而在完全离线的情况下实现双向对话循环。 这一进展意义重大，因为它将“交互式工件（interactive artifacts）”这一功能大众化，而此前该功能仅局限于 Anthropic 的 Claude 等专有云服务。通过支持本地部署，它解决了那些需要处理敏感数据且不愿将其发送至外部服务器的用户的关键隐私顾虑。此外，它将静态图表转化为动态对话接口，允许用户点击节点或填写表单，从而立即触发定制的 AI 响应。这标志着本地大模型的使用范式从简单的文本生成转向了复杂的交互式应用构建。 该插件需要一个自托管的 Open WebUI 实例以及任何具备工具调用能力且能生成合格 HTML 代码的模型。其性能高度依赖于模型的每秒令牌数（TPS）速度，较慢的本地模型可能导致工件渲染出现明显的延迟。该项目支持深色模式主题，并适用于 Qwen、Gemma 和 DeepSeek 等多种模型家族，前提是它们能输出有效的 HTML/SVG/JS 代码。安装过程仅需将两个文件粘贴到 Open WebUI 的插件文件夹中，据描述耗时不到一分钟。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">local-llm</span><span class="tag">open-source</span><span class="tag">ai-tools</span><span class="tag">visualization</span><span class="tag">privacy</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            最近，Anthropic 等基于云端的 AI 提供商推出了“工件（Artifacts）”功能，允许模型在聊天窗口中直接渲染代码预览、图表和交互式网页。然而，本地大模型爱好者一直缺乏一种可完全在本地运行、不依赖外部 API 或网络连接的类似解决方案。传统的本地部署通常仅限于文本输出，或者需要复杂的手动设置才能显示视觉内容。“工具调用（tool calling）”是指 AI 模型请求特定函数或代码执行的能力，本项目正是利用这一机制弥合了文本生成与界面渲染之间的差距。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-3">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              7.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://old.reddit.com/r/LocalLLaMA/comments/1rz6hmb/llmvisualizedcom_interactive_web_visualization_of/" target="_blank" rel="noopener">交互式网页工具实时可视化 GPT-2 的激活值与注意力机制</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · r/LocalLLaMA · 2026-03-20 19:56</div>
+          
+          <div class="item-summary">一位开发者发布了 llm-visualized.com，这是一个基于网页的交互式工具，能够实时渲染 GPT-2 Small (124M) 模型内部运作的 3D 和 2D 可视化效果。该应用展示了在前向传播过程中提取的实时神经元激活值和注意力分数，使用户能够逐步观察模型如何处理输入令牌。其 3D 部分使用 Three.js 构建，2D 界面则采用标准的 HTML/CSS/JS 开发，无需本地安装即可让用户直观地了解 Transformer 架构。 该工具通过将注意力头和激活模式等抽象概念转化为可视化的具体形象，显著降低了理解大型语言模型（LLM）机制的门槛。它为学生和研究人员提供了宝贵的教育资源，使他们无需访问复杂的代码库或消耗大量的计算资源即可调试或解读模型行为。通过可视化 Transformer 的“黑盒”，它有助于培养人们对信息如何在现代人工智能系统中流动和变换的直觉。与静态图表或学术论文相比，这种交互式方法允许用户动态探索特定输入及其对网络的即时影响。 该可视化工具专门针对包含 1.24 亿参数的 GPT-2 Small 模型，确保其足够轻量以便在网页浏览器中高效运行。用户可以同时观察到神经元电路的 3D 表示以及显示令牌间注意力分数的 2D 矩阵，且均为实时呈现。该工具完全在客户端运行或通过轻量级 API 调用来提取激活值，意味着用户端无需强大的 GPU 即可查看结果。然而，由于它仅限于较小的 GPT-2 架构，所观察到的模式可能无法完全扩展到 Llama-2-7B 或 GPT-3 等更大模型中发现的复杂性。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">llm</span><span class="tag">interpretability</span><span class="tag">education</span><span class="tag">visualization</span><span class="tag">gpt-2</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            GPT-2 是一个仅在解码器端工作的 Transformer 模型，经过大量英文语料库的预训练，是许多现代大型语言模型的基础架构。其运行的关键在于“注意力机制”，它允许模型在预测下一个令牌时权衡序列中不同单词的重要性，以及“激活值”，代表网络层内神经元的触发强度。传统上，理解这些内部状态需要分析研究论文中的原始数值数据或静态图像，这使得非专家难以掌握信息的动态流动。最近的机械可解释性努力旨在逆向工程这些网络以确切理解它们如何处理语言，而可视化是该领域的一个关键组成部分。
+          </div>
+          
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="sub-topic-section">
+      <h3 class="sub-topic-title">AI 智能体与工具 <span class="sub-topic-count">5</span></h3>
+      <div class="columns-flow">
+        
+        <div class="col-card" id="sec-1-st0-1">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://huggingface.co/blog/nvidia/domain-specific-embedding-finetune" target="_blank" rel="noopener">Hugging Face 与 NVIDIA 发布快速领域专用嵌入模型微调指南</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · Hugging Face Blog · 2026-03-20 19:38</div>
+          
+          <div class="item-summary">Hugging Face 与 NVIDIA 联合发布了一份详尽教程，展示了如何利用 NVIDIA AI Workbench 和 Hugging Face 库在一天内完成领域专用嵌入模型的微调。该指南提供了一套逐步工作流程，利用预训练模型针对特定任务进行优化，无需海量计算资源或数周的训练时间。此流程专门旨在通过将向量表示与领域细微差别对齐，从而提升语义搜索和检索增强生成（RAG）系统的性能。 这一进展意义重大，因为通用嵌入模型在处理法律、医疗或电信等领域的专业术语时往往表现不佳，导致检索准确率低下。通过将微调过程缩短至一天以内，组织能够快速部署针对其专有数据定制的高性能 RAG 系统，而无需承担高昂成本。实证研究表明，领域专用模型可将检索准确率从不足 75% 提升至 90% 以上，这对于应用型 AI 项目而言是一个巨大的飞跃。此举降低了尖端 NLP 能力的门槛，使小型团队也能具备此前仅大型实体才拥有的自定义模型开发优势。 该教程利用 NVIDIA AI Workbench 简化环境设置，并采用参数高效微调（PEFT）技术以降低内存需求。其重点在于适配现有的开源模型而非从头训练，这显著降低了在数据量和硬件需求方面的入门门槛。用户将获得关于数据预处理、模型选择以及严格评估指标的指导，以确保优化后的嵌入在特定任务上的表现优于通用基准。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">embeddings</span><span class="tag">fine-tuning</span><span class="tag">nlp</span><span class="tag">huggingface</span><span class="tag">applied-ai</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            嵌入模型将文本转换为捕捉语义含义的数值向量，使机器能够理解词语或句子之间的上下文和相似性。虽然像 BERT 或 Sentence Transformers 这样的通用模型在常见语言上表现良好，但它们往往无法掌握特定行业独有的专业术语和上下文关系。微调是指获取这些预训练模型，并在较小的领域专用数据集上进一步训练，以调整其内部表示的过程。历史上，这一过程需要大量的专业知识和计算能力，但近期工具链和高效算法的进步使其对开发者更加易于上手。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-2">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://old.reddit.com/r/LocalLLaMA/comments/1rytksg/cursors_new_composer_20_is_apparently_based_on/" target="_blank" rel="noopener">Cursor Composer 2.0 被证实基于月之暗面的 Kimi 模型</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · r/LocalLLaMA · 2026-03-20 11:21</div>
+          
+          <div class="item-summary">社区通过对网络流量的分析发现，Cursor 的新功能 Composer 2.0 实际上是由月之暗面（Moonshot AI）的 Kimi 模型驱动的，其在 API 请求中被具体标识为 &#39;kimi-k2p5-rl-0317-s515-fast&#39;。这一发现源于用户在聊天完成请求中注意到了该模型标识符，随后得到了 Cursor 联合创始人 Lee Robinson 的官方确认。这一结果澄清了后端并非 Cursor 自研模型或此前许多用户假设的西方大语言模型。 这一发现意义重大，因为它突显了中国基础模型日益深入地集成到领先的西方开发工具中，挑战了顶级 AI 编程助手仅依赖 Anthropic 或 OpenAI 等美国供应商的固有假设。这表明月之暗面的 Kimi 模型已达到足以驱动前沿级代码代理的性能水平，可能会改变 AI 基础设施领域的全球竞争格局。对于开发者而言，这意味着能够以据报道每百万输入令牌 0.50 美元的价格获得高性能编码能力，这一价格低于许多现有替代方案。此外，这也强调了 AI 供应链多样化的重要性，证明强大的代理工作流可以建立在非西方架构之上。 对 HTTP 请求的技术检查显示，在使用 Composer 2.0 时调用了特定的模型字符串 &#39;accounts/anysphere/models/kimi-k2p5-rl-0317-s515-fast&#39;。Cursor 将 Composer 2.0 定位为“前沿级”编码模型，定价为每百万输入令牌 0.50 美元和每百万输出令牌 2.50 美元，并声称其在 Terminal-Bench 2.0 基准测试中得分为 61.7。许可安排似乎是修改版的 MIT 许可证，主要要求 Cursor 明确声明该技术基于 Kimi 2.5。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">ai-tools</span><span class="tag">llm-integration</span><span class="tag">developer-productivity</span><span class="tag">industry-news</span><span class="tag">cursor</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            Cursor 是一款流行的 AI 驱动代码编辑器，以集成大语言模型辅助编码任务而闻名，此前主要依赖 Anthropic 和 OpenAI 的模型。月之暗面（Moonshot AI）是一家由清华大学校友创立的北京公司，因其 Kimi 系列大语言模型而声名鹊起。Kimi K2.5 模型被描述为一种多模态代理模型，能够处理长达 256K 令牌的上下文并执行复杂的推理任务。Cursor 中的“Composer”一词指的是一种代理功能，允许 AI 编辑多个文件并执行命令以完成复杂的编程目标。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            社区讨论反映了惊讶与验证并存的情绪，有用户指出包括埃隆·马斯克在内的知名人士也参与了对话并对这一披露发表评论。部分参与者最初表示怀疑，但在看到 Cursor 领导层的官方确认后接受了这一发现。帖子中还包含了关于在西方软件栈中使用中国模型的影响的讨论，一些用户分析了帖子中提到的具体许可要求。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-3">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              7.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://old.reddit.com/r/MachineLearning/comments/1rz4tri/p_neuropt_llmguided_hyperparameter_optimization/" target="_blank" rel="noopener">neuropt：利用训练曲线进行 LLM 引导的超参数优化</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · r/MachineLearning · 2026-03-20 18:52</div>
+          
+          <div class="item-summary">作者发布了名为&#39;neuropt&#39;的开源工具，该工具利用大语言模型（LLM）分析完整的每轮次训练和验证曲线，而不仅仅是最终指标，以此进行超参数调优。与仅依赖终点分数的传统贝叶斯优化不同，neuropt 将曲线数据发送给 LLM，使其能够推理过拟合或停滞等动态变化，然后再建议下一个配置。该工具支持 PyTorch、XGBoost 和 scikit-learn，并具备自动检测可调参数的功能，从而简化了搜索空间的定义。 这种方法意义重大，因为它使优化算法能够理解模型性能的上下文，例如识别模型是否早期过拟合或未能收敛，而这些是仅凭最终分数无法发现的。通过利用 LLM 的推理能力，neuropt 有望在有限的计算预算内，比随机搜索或树结构帕森估计器（TPE）等标准方法取得更好的结果。这可能从根本上改变机器学习从业者的工作流程，减少寻找最佳超参数所需的昂贵试验次数。它填补了基于代理的超参数优化（如 AgentHPO）的学术研究与实用的开源软件之间的空白。 在 FashionMNIST 和 Covertype 数据集上进行的基准测试中（预算为 15 次评估），neuropt 的表现优于 Optuna 的 TPE 算法和随机搜索。该软件包可通过命令 `pip install &#34;neuropt[llm]&#34;` 安装，并包含快速入门文档。虽然这一概念有来自 AgentHPO (CPAL 2025) 等论文的学术支持，但此次发布特别旨在为各种机器学习框架提供一个干净、可用于生产的接口。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">hyperparameter-optimization</span><span class="tag">llm-applications</span><span class="tag">machine-learning</span><span class="tag">developer-tools</span><span class="tag">training-dynamics</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            超参数优化（HPO）是寻找机器学习模型最佳设置的过程，这通常非常耗时且计算成本高昂。网格搜索、随机搜索和贝叶斯优化等传统方法通常仅在训练完成后根据最终验证分数来评估配置。然而，“训练动态”（即损失和准确率随每个轮次的变化）包含了关于模型行为的丰富信息，而这些是最终指标所遗漏的。最近的研究已开始探索如何让 LLM 充当代理来解释这些复杂模式，从而更智能地指导优化过程。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-4">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              7.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://t.me/zaihuapd/40400" target="_blank" rel="noopener">Google AI Studio 推出氛围编程功能，支持自然语言生成应用</a>
+            </div>
+          </div>
+          <div class="item-meta">telegram · zaihuapd · 2026-03-20 04:05</div>
+          
+          <div class="item-summary">Google AI Studio 推出了全新的“氛围编程”功能，用户只需通过自然语言描述创意即可生成完整且可运行的 AI 应用。该功能由 Gemini 模型和新的 Antigravity 代码代理驱动，能够自动处理 API 密钥管理和模型连接等复杂设置工作。此外，平台还更新了应用画廊以提供灵感，并新增了注释模式，允许用户通过高亮文本指令来修改应用的特定部分。 这一进展显著降低了构建 AI 原生应用的门槛，可能将开发者的工作流程从手动编码转变为高层级的提示词工程。通过与 Firebase 直接集成并处理全栈部署，Google 正将 AI Studio 定位为一个能与新兴无代码和低代码平台抗衡的综合解决方案。如果成功，这不仅能加快专业人员的原型设计速度，还能让非技术用户在无需理解底层基础设施的情况下创建复杂的工具。这标志着向“氛围编程”范式迈出了重要一步，即关注点完全在于意图而非语法。 新功能依赖名为</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">google ai studio</span><span class="tag">gemini</span><span class="tag">low-code</span><span class="tag">developer tools</span><span class="tag">generative ai</span>
+          </div>
+          
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-5">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              7.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://code.claude.com/docs/en/channels" target="_blank" rel="noopener">Claude Code 推出 Channels 功能，支持通过 Telegram 和 Discord 远程控制</a>
+            </div>
+          </div>
+          <div class="item-meta">telegram · zaihuapd · 2026-03-20 04:20</div>
+          
+          <div class="item-summary">Anthropic 为 Claude Code 推出了 Channels 功能，允许用户通过连接到 Telegram 和 Discord 的 MCP 服务器，向正在运行的编码会话推送消息、警报和 webhook。此更新使开发人员能够直接从移动聊天应用监控 CI 结果并管理本地编程任务。该功能目前处于研究预览阶段，团队和企业账户需要管理员在后台开启特定设置方可使用。 这一进展显著弥合了 AI 编码助手与实时通信平台之间的差距，改变了开发人员在离开办公桌时与自主代理交互的方式。通过利用 Telegram 和 Discord 等流行应用，Anthropic 使得远程代理管理更加便捷，无需搭建自定义仪表板。此举通过将这些多通道支持和长期记忆能力整合到官方的 Claude Code 生态系统中，直接与开源替代方案展开竞争。最终，这标志着向更流畅的事件驱动工作流转变，AI 代理可以主动就关键事件向人类发出警报。 Channels 功能目前以研究预览模式运行，并采用发送者白名单配对机制来确保远程交互过程中的安全性。对于团队版和企业版计划，管理员必须先在后台明确启用 `channelsEnabled` 设置，用户才能使用此功能。该系统依赖模型上下文协议（MCP）来标准化 AI 会话与外部消息工具之间的连接。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">claude code</span><span class="tag">ai agents</span><span class="tag">developer tools</span><span class="tag">mcp</span><span class="tag">automation</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            模型上下文协议（MCP）是 Anthropic 于 2024 年底推出的一项开放标准，旨在标准化 AI 系统与外部工具及数据源的集成方式。在此次更新之前，与 Claude Code 交互通常需要直接的终端访问或专用界面，限制了远程监控的灵活性。MCP 提供了一个通用接口，使大型语言模型能够安全地读取文件、执行命令并与各种外部系统共享数据。新的 Channels 功能正是基于此协议构建，将 AI 的能力扩展到了日常通信应用中。
+          </div>
+          
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="sub-topic-section">
+      <h3 class="sub-topic-title">基准评估与研究 <span class="sub-topic-count">3</span></h3>
+      <div class="columns-flow">
+        
+        <div class="col-card" id="sec-1-st0-1">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://old.reddit.com/r/MachineLearning/comments/1rz748k/medical_ai_gets_66_worse_when_you_use_automated/" target="_blank" rel="noopener">使用自动标签训练导致医疗 AI 性能因偏见下降 66%</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · r/MachineLearning · 2026-03-20 20:20</div>
+          
+          <div class="item-summary">一项在 ISBI 2026 上发表的新研究揭示，使用自动标签训练医疗分割模型会导致年轻乳腺癌患者的模型性能相比清洁数据训练的模型下降 66%。研究发现，这种下降不仅仅归因于更高的乳腺密度，而是源于年轻患者肿瘤特征的质性差异，而自动标签无法准确捕捉这些差异。此外，该研究揭露了“有偏见的尺子”效应，即使用同样有缺陷的自动标签作为标准基准掩盖了性能退化的真实程度。 这一发现至关重要，因为它表明依赖可扩展但不完美的自动标签可能会将人口统计学偏见放大高达 40%，直接威胁年轻患者的健康公平。它挑战了当前行业同时使用自动注释进行训练和评估的做法，显示这种方法可能产生模型可靠性的虚假安全感。如果不加以解决，这些隐藏的故障可能导致特定人群（那些在医疗结果中已面临差异的人群）的误诊或治疗延误。最终，这要求医疗 AI 的开发和基准测试转向获取高质量、专家验证的标签。 该研究特别指出，这种偏见是质性的，因为年轻患者的肿瘤更大且更多变，使得基于噪声自动数据训练的模型从根本上难以学习。当使用相同的有偏见自动标签进行评估时，性能指标看起来正常，这说明了“有偏见的尺子”效应，即地面真值本身存在缺陷。该论文被接受为 2026 年国际生物医学成像研讨会（ISBI）的口头报告，突显了其对研究社区的重要性。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">medical ai</span><span class="tag">fairness</span><span class="tag">data labeling</span><span class="tag">benchmarking</span><span class="tag">computer vision</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            在医学影像中，“分割”是指将图像划分为多个部分以识别肿瘤等结构的过程，这对诊断和治疗计划至关重要。由于放射科专家手动标记数千张图像的成本高且耗时，研究人员经常使用由现有算法生成的“自动标签”来训练新模型。然而，如果这些初始自动标签包含错误或偏见，它们可能会在新模型中传播甚至放大这些问题，这种现象称为偏见放大。“有偏见的尺子”效应发生在模型的性能针对这些同样有缺陷的标签进行测量时，即使模型在现实案例中失败，也会使其显得准确。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-2">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://old.reddit.com/r/MachineLearning/comments/1ryew3g/r_doctolora_learning_to_instantly_internalize/" target="_blank" rel="noopener">Sakana AI 推出 Doc-to-LoRA 实现即时上下文内化</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · r/MachineLearning · 2026-03-19 22:40</div>
+          
+          <div class="item-summary">Sakana AI 推出了 Doc-to-LoRA (D2L)，这是一种轻量级超网络，能够通过单次前向传播从文档中元学习生成 LoRA 适配器。该方法使大型语言模型能够即时内化长上下文，无需进行逐提示的梯度更新或在推理时重新消耗原始文本。在评估中，D2L 在“大海捞针”任务上实现了接近完美的零样本准确率，其处理的序列长度超过目标模型原生上下文窗口的 4 倍以上。 这一进展显著降低了延迟和 KV-cache 内存消耗，解决了导致 Transformer 长上下文推理缓慢且内存密集二次方注意力成本问题。通过将昂贵的上下文蒸馏训练替换为即时生成步骤，D2L 使得大型语言模型能够快速适应频繁的知识更新和个性化的聊天行为。这种方法可能从根本上改变模型处理长文档的方式，使实时个性化和高效的长会话交互在商业上变得可行，而此前这些应用因成本过高而难以实现。 该系统作为一个超网络运行，直接从输入文档输出 LoRA 权重，消除了为每个新上下文进行迭代微调的需求。在真实世界的问答数据集上，它表现出优于标准上下文蒸馏的性能，同时显著降低了峰值内存使用量和更新延迟。该技术成功地将特定信息（即“针”）存储在生成的适配器中，允许后续查询检索这些数据而无需访问原始的长上下文字符串。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">llm</span><span class="tag">optimization</span><span class="tag">lora</span><span class="tag">research</span><span class="tag">context-window</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            大型语言模型通常依赖上下文学习，即将相关文档输入模型的上下文窗口，但由于注意力机制的二次方扩展，这种方法面临高昂的内存成本。上下文蒸馏是一种现有的技术，试图将这些信息压缩到模型参数中，但传统上需要对每个新文档进行计算成本高昂的训练。LoRA（低秩自适应）是一种流行的参数高效微调方法，它在冻结的模型上添加小型可训练层，D2L 利用这一点来高效存储蒸馏后的上下文。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-3">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://old.reddit.com/r/LocalLLaMA/comments/1ryvwsq/mistral_small_4_vs_qwen359b_on_document/" target="_blank" rel="noopener">Qwen3.5-9B 在文档基准测试中超越 Mistral Small 4 和 GPT-4.1</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · r/LocalLLaMA · 2026-03-20 13:13</div>
+          
+          <div class="item-summary">IDP Leaderboard 上的社区基准分析显示，Qwen3.5-9B 在 14 个文档理解子任务中的 10 个上超越了 Mistral Small 4，以 77.0 分排名第 9，而 Mistral 以 71.5 分排名第 11。值得注意的是，这款拥有 90 亿参数的 Qwen 模型在特定领域甚至超过了专有的 GPT-4.1，特别是在数学 OCR 方面以 85.5 分显著优于 Mistral 的 66 分。虽然 Mistral Small 4 在 TEDS 等表格结构指标上表现更佳，但 Qwen 在文本提取和关键信息提取任务中展现了更广泛的能力。 这一对比意义重大，因为它表明一个较小的 9B 密集开源模型可以在专门的文档任务中超越大得多的 119B 混合专家（MoE）模型，甚至与顶级专有系统竞争。对于开发者和企业而言，这意味着高性能文档处理很快可能在更易获得的硬件上实现，而无需依赖高昂的 API 成本或庞大的 GPU 集群。结果挑战了参数量是多模态文档理解性能主要驱动因素的假设，突出了架构效率和训练数据质量的重要性。此外，这表明开源模型正成为涉及智能文档处理（IDP）的复杂企业工作流中封闭系统的可行替代方案。 Mistral Small 4 是一个拥有 1190 亿参数的 MoE 模型，激活参数为 65 亿，而 Qwen3.5-9B 是一个仅有 90 亿参数的密集模型，但 Qwen 在整体的 IDP Core 和 OlmOCR 基准测试中领先。Mistral 在表格结构识别（TEDS-S 得分 82.7 对 77.6）方面保持优势，但 Qwen 在数学 OCR 和通用文本提取方面占据主导地位。本地部署的一个关键考虑因素是，Mistral Small 4 需要大量资源（全精度为 242GB），因此其新的 NVFP4 4 比特量化对于在消费级硬件上运行至关重要，但目前尚未经过验证视觉能力是否能在该压缩下幸存。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">llm-benchmarks</span><span class="tag">document-understanding</span><span class="tag">mistral</span><span class="tag">qwen</span><span class="tag">open-source-ai</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            智能文档处理（IDP）涉及利用人工智能从各种文档格式（包括扫描图像和 PDF）中提取、分类和理解数据，这需要强大的光学字符识别（OCR）和布局分析能力。IDP Leaderboard 是一个全面的评估框架，通过在多样化数据集上测试模型来反映文档理解中的现实世界挑战。Mistral Small 4 是 Mistral AI 最近推出的混合模型，统一了指令、推理和编码能力，而 Qwen3.5-9B 是阿里云于 2026 年初发布的高效多模态基础模型。对这些模型进行基准测试有助于社区理解模型大小、架构（密集型与 MoE）以及特定任务性能之间的权衡。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            社区讨论主要集中在好奇应用新的 NVFP4 4 比特量化后，Mistral Small 4 的视觉能力是否依然完好，因为这对于在有限硬件上进行本地部署至关重要。用户正在积极寻求任何曾在文档任务上测试过量化版本的用户的反馈，以确定与全精度 API 结果相比，性能下降是否可以接受。
+          </div>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="sub-topic-section">
+      <h3 class="sub-topic-title">安全政策与漏洞 <span class="sub-topic-count">4</span></h3>
+      <div class="columns-flow">
+        
+        <div class="col-card" id="sec-1-st0-1">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://www.justice.gov/opa/pr/three-charged-conspiring-unlawfully-divert-cutting-edge-us-artificial-intelligence" target="_blank" rel="noopener">美国起诉三人涉嫌向中国走私价值 25 亿美元的英伟达 AI 服务器</a>
+            </div>
+          </div>
+          <div class="item-meta">telegram · zaihuapd · 2026-03-20 02:55</div>
+          
+          <div class="item-summary">美国当局解封起诉书，指控美超微（Super Micro）联合创始人 Liaw、总经理 Chang 及承包商 Sun 共谋非法将约 25 亿美元受限制的英伟达 AI 服务器转运至中国。被告被指利用东南亚空壳公司、伪造文件以及在仓库摆放无法运行的假服务器等欺骗手段来规避审计。尽管美超微未被列为被告，但在 Liaw 和 Sun 于加州被捕后，公司已暂停这两人的职务并终止了与 Sun 的合作关系。 此案凸显了美国对先进 AI 硬件出口管制执法力度的升级，表明当局愿意针对大规模逃避方案追究高管个人的法律责任。鉴于美超微约占英伟达总收入的 9%，该服务器制造商任何长期的法律或运营动荡都可能破坏关键 AI 基础设施的全球供应链。案件中描述的复杂欺骗手段（如用吹风机更换序列号标签）表明，现有的合规检查可能需要大幅加强，以侦测老练的走私网络。最终，这一事态发展信号表明整个 AI 硬件生态系统将面临更严格的审查，并可能导致全球分销商和集成商面临更严苛的尽职调查要求。 起诉书详细描述了具体的欺骗手段，包括使用数千台无法运行的假服务器来蒙骗检查人员，以及利用吹风机的热量物理篡改序列号标签。三名被指控者中的两人，Liaw 和 Sun，已在加州被捕，而 Chang 目前在逃。虽然该公司不是此刑事案件的被告，但据报道美超微的股价在消息公布后大幅下跌，反映了投资者对其潜在声誉损害和未来监管审查的担忧。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">ai-regulation</span><span class="tag">export-controls</span><span class="tag">supply-chain</span><span class="tag">legal</span><span class="tag">hardware</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            自 2022 年 10 月以来，美国工业和安全局（BIS）对高端 AI 芯片（如英伟达的 A100 和 H100）实施了严格的出口管制，以防止其流入中国大陆和香港。这些法规旨在遏制中国获取训练复杂 AI 模型和开发军事应用所需的高级算力。2024 年和 2025 年的最新修订进一步扩大了限制范围，涵盖了特定的服务器分类和 AI 模型权重，要求许多以前不受限制的交易必须获得许可。作为美国维持技术优势更广泛战略的一部分，违反这些规则的公司将面临包括罚款和监禁在内的严厉处罚。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-2">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://www.lemonde.fr/en/international/article/2026/03/20/stravaleaks-france-s-aircraft-carrier-located-in-real-time-by-le-monde-through-fitness-app_6751640_4.html" target="_blank" rel="noopener">Le Monde 通过健身应用数据实时追踪法国航空母舰</a>
+            </div>
+          </div>
+          <div class="item-meta">hackernews · 2026-03-20 13:01</div>
+          
+          <div class="item-summary">法国报纸《世界报》（Le Monde）通过聚合健身应用 Strava 上的公开数据，成功定位了“戴高乐”号航空母舰的实时位置。调查显示，船员在使用该应用时无意中广播了他们的位置，使得该媒体无需机密情报即可精确锁定舰船坐标。这一事件标志着一次重大的行动安全失误，消费类物联网数据泄露了军事机密。 这一事件突显了现代军事行动中的一个关键漏洞，即个人消费设备可能绕过传统的安全协议。它表明，即使在先进监控时代，仅通过聚合健身追踪器的数据也能暴露本应保密的敏感资产位置。此事件为全球国防组织敲响了警钟，要求其更新关于部署舰船上个人电子设备和互联网连接的行动安全（OPSEC）政策。此外，它强调了个人行为对国家安全日益增长的风险，这种风险已不仅限于热力图，还扩展到了实时追踪。 此次追踪是通过分析 Strava 上的公开活动日志实现的，这些数据可能是通过卫星互联网或靠近海岸时的蜂窝网络同步的，而非依赖复杂的间谍技术。与以往涉及显示历史模式的静态热力图事件不同，本案涉及识别高价值海军资产的具体实时动态。尽管存在现行指导方针，泄露仍然发生，这表明在船员中存在政策与执行之间的差距，他们可能为了便利而优先考虑安全协议。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">opsec</span><span class="tag">privacy</span><span class="tag">iot</span><span class="tag">geolocation</span><span class="tag">security</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            Strava 是一款流行的健身应用，默认情况下会记录并公开分享用户锻炼时的 GPS 数据，除非配置了隐私区域。2018 年，Strava 全球热力图的发布意外暴露了世界各地多个军事基地的位置和巡逻路线，促使美国五角大楼禁止在敏感区域使用健身追踪器。行动安全（OPSEC）是指保护关键信息不被对手获取的过程，如今这越来越多地包括管理由消费类物联网（IoT）设备留下的数字足迹。历史上，隐藏像航空母舰这样的大型舰船依赖于物理隐身和无线电静默，但无处不在的连接性引入了新的探测途径。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            社区评论反映了惊讶与愤世嫉俗交织的情绪，用户指出类似的行动安全失误此前曾发生过，例如美军基地的暴露以及一名俄罗斯潜艇指挥官被追踪的事件。几位参与者辩论了在现有卫星能力下航空母舰的位置是否真的能保密，但他们一致认为，实时应用数据提供了一种比国家级监控更廉价且更易获得的替代方案。大家普遍共识是，人为因素，包括天真和怕麻烦，仍然是军事数字安全中最薄弱的一环。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-3">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://appleinsider.com/articles/26/03/19/iphone-isnt-safe-on-old-ios-anymore-update-to-at-least-ios-15-now?utm_source=rss" target="_blank" rel="noopener">苹果确认 iOS 13 和 14 存在严重 WebKit 漏洞</a>
+            </div>
+          </div>
+          <div class="item-meta">telegram · zaihuapd · 2026-03-20 01:12</div>
+          
+          <div class="item-summary">苹果正式确认影响 iOS 13 和 14 的 WebKit 引擎存在严重安全漏洞，允许恶意网站绕过浏览器保护并泄露用户数据。作为回应，苹果于 3 月 11 日发布了 iOS 15.8.7 和 iOS 16.7.15 安全更新，并明确指出只有升级至 iOS 15 或更高版本的设备才能获得针对这些利用攻击的完整防护。运行旧版操作系统的用户被敦促立即更新，因为在未修补的版本上进行常规网页浏览即可触发数据泄露攻击。 此公告至关重要，因为这些漏洞引发了跨域问题，使得恶意脚本能够访问其他站点的数据，从而从根本上破坏了保障现代网页浏览安全的同源策略（Same-Origin Policy）。其影响范围广泛，波及大量无法升级超过 iOS 14 的旧款 iPhone，如果这些设备不至少升级到 iOS 15，将永久面临零点击网页攻击的风险。对于安全专业人员和企业管理员而言，这突显了强制执行最低操作系统版本策略的紧迫性，因为遗留设备现在对网络完整性和个人隐私构成了重大威胁。与以往可能仅缓解特定利用攻击的补丁不同，此次修复解决了导航 API 中的核心机制问题，因此任何仍在使用已弃用软件的用户都必须立即采取行动。 该具体漏洞涉及导航 API 中的跨域问题，苹果通过在 WebKit 中实施改进的输入验证检查来解决此问题。苹果的修复仅通过 iOS 15.8.7 和 iOS 16.7.15 更新提供，这意味着卡在 iOS 14 或更低版本的设备无法接收补丁，必须升级操作系统才能确保安全。技术分析表明，该缺陷允许绕过同源策略（SOP），可能导致无需用户交互仅需访问受损网站即可实现全链条利用的攻击。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">cybersecurity</span><span class="tag">mobile-security</span><span class="tag">ios</span><span class="tag">webkit</span><span class="tag">vulnerability</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            WebKit 是为 Safari 和 iOS 上所有网页视图提供动力的开源网页浏览器引擎，充当互联网代码与设备交互的守门人。WebKit 的一个核心安全功能是同源策略（SOP），它防止来自一个网站的脚本读取属于另一个网站的数据，从而隔离潜在威胁。当 WebKit 在处理导航或输入验证时出现漏洞，攻击者就可以绕过这些限制，直接通过浏览器标签页窃取 Cookie、会话令牌或其他敏感信息。历史上，苹果曾通过回溯移植安全补丁来支持旧设备，但此次事件标志着一个转变，即关键的网页引擎修复现在与 iOS 15 等较新的主要操作系统版本绑定。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-4">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              7.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://www.theverge.com/tech/896490/google-replace-news-headlines-in-search-canary-coal-mine-experiment" target="_blank" rel="noopener">谷歌测试在搜索结果中用 AI 改写网页标题</a>
+            </div>
+          </div>
+          <div class="item-meta">telegram · zaihuapd · 2026-03-20 16:22</div>
+          
+          <div class="item-summary">谷歌正在进行一项小规模实验，利用生成式 AI 重写搜索结果中的网页标题，使其更贴合用户查询。The Verge 的编辑发现他们原有的标题被替换为更简短的 AI 生成版本，这些版本侧重于特定关键词而非完整语境。尽管当前测试使用了生成式模型，但谷歌明确表示，基于此研究推出的任何最终功能都不会依赖生成式 AI。 这一进展标志着搜索引擎解释和呈现内容方式的重大转变，可能会将查询相关性置于出版商意图之上。如果广泛采用，这种方法可能会严重影响 SEO 策略，因为出版商可能失去对搜索结果中标题显示方式的控制权。这也引发了对内容完整性的担忧，以及 AI 可能曲解原文细微差别的风险。此外，谷歌区分实验方法与最终产品，表明他们正在探索标题优化的逻辑，而无需承担实时生成输出带来的风险。 该实验特别旨在通过识别比原始页面标题更相关于特定搜索查询的标题来提升互动性。在一个记录在案的例子中，一个关于利用 AI 工具作弊的详细标题被截断为仅关注工具本身的通用短语。谷歌澄清说，此测试阶段不仅限于新闻网站，而是横向应用于各类网页，以评估更广泛的改进效果。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">google</span><span class="tag">search-engine</span><span class="tag">generative-ai</span><span class="tag">seo</span><span class="tag">tech-policy</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            搜索引擎历来允许网站管理员自定义标题，这些标题在搜索结果中显示为可点击的蓝色链接。然而，当谷歌认为原标题描述不足或与用户特定搜索词无关时，以前也曾通过算法调整过标题。将生成式 AI 引入此过程代表着从简单的关键词提取或重新排列转向语义理解和内容综合。这种演变反映了行业利用大型语言模型提高搜索结果质量和用户满意度的更广泛趋势。
+          </div>
+          
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="sub-topic-section">
+      <h3 class="sub-topic-title">行业动态与基建 <span class="sub-topic-count">4</span></h3>
+      <div class="columns-flow">
+        
+        <div class="col-card" id="sec-1-st0-1">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://www.qbitai.com/2026/03/389569.html" target="_blank" rel="noopener">黄仁勋：每一家工业企业都将成为机器人公司</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · 量子位 · 2026-03-20 00:52</div>
+          
+          <div class="item-summary">英伟达 CEO 黄仁勋宣布，在物理 AI 的驱动下，每一家工业企业都将不可避免地转型为机器人公司。为了支持这一转变，英伟达发布了一整套物理 AI 基础设施工具，旨在弥合数字智能与物理行动之间的鸿沟。这套新栈集成了先进的仿真、机器人学习框架和加速计算技术，以实现自主系统在现实环境中的部署。 这一声明标志着一个根本性的范式转变，即人工智能超越了虚拟数据处理，通过具身智能体直接操控物理世界。通过提供全栈基础设施，英伟达旨在降低传统行业采用机器人的门槛，从而可能加速制造业、物流业和重工业的自动化进程。此举将物理 AI 定位为半导体和工业部门的下一个主要增长引擎，其影响力可与生成式 AI 对软件行业的冲击相媲美。这表明，未来工业企业的竞争力将取决于其将智能机器整合到核心运营中的能力。 新发布的基础设施建立在 NVIDIA Isaac 平台之上，该平台包括用于训练自主移动机器人和机械臂的仿真环境及 Isaac Lab 等机器人学习框架。该解决方案利用 NVIDIA CUDA 加速库和参考工作流，简化了人形机器人及其他复杂机器人系统的开发过程。这些工具旨在作为一个连贯的生态系统运行，允许开发者在实际物理部署之前，在数据中心规模上进行模拟、训练和模型部署。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">physical ai</span><span class="tag">robotics</span><span class="tag">nvidia</span><span class="tag">industrial automation</span><span class="tag">ai infrastructure</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            物理 AI 指的是通过传感器、执行器和机器人与物理世界互动的人工智能，这与仅在数字空间中运行的传统 AI 不同。与标准软件模型不同，物理 AI 需要“具身认知”，这意味着 AI 必须理解并驾驭现实世界的物理规律，以执行移动物体或穿越地形等任务。NVIDIA 的 Isaac 平台历来是通过结合仿真与深度学习来创建这些自主系统的关键开发环境。从简单的自动机器发展到智能、适应性强的机器人，代表了当前工业技术的前沿。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-2">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              7.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://arstechnica.com/space/2026/03/jeff-bezos-throws-his-hat-in-the-ring-for-an-orbital-data-center-megaconstellation-too/" target="_blank" rel="noopener">杰夫·贝佐斯宣布计划构建轨道数据中心巨型星座</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · Ars Technica · 2026-03-20 14:46</div>
+          
+          <div class="item-summary">杰夫·贝佐斯正式宣布计划部署第三个巨型星座，此次旨在托管太空数据中心而非提供互联网连接。该新基础设施旨在通过利用轨道资源处理 AI 工作负载，作为地面计算系统的补充。这一声明标志着贝佐斯的太空雄心从 Kuiper 互联网项目显著扩展到了轨道云计算领域。 该举措通过在太空中利用不间断的太阳能，解决了地面 AI 基础设施面临的电力供应关键瓶颈。如果成功，轨道数据中心可以提供几乎无限的计算能力，而不受影响地面太阳能发电场的夜间黑暗或多云天气的限制。此举加剧了太空经济的竞争，继 SpaceX 和埃隆·马斯克的 xAI 表现出类似兴趣之后，可能会重塑全球 AI 模型的训练和部署方式。这标志着太空不再仅仅是通信媒介，而是成为了重型工业计算的主要场所。 所提出的系统被明确定位为现有地面基础设施的补充而非完全替代，这意味着将采用混合云架构。虽然初始公告中未详细说明关于延迟、带宽或运载火箭的具体技术规格，但该概念依赖于巨型星座典型的大规模部署能力。该架构旨在克服目前限制地球上大型语言模型扩展的电力限制。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">space-tech</span><span class="tag">data-centers</span><span class="tag">ai-infrastructure</span><span class="tag">cloud-computing</span><span class="tag">industry-news</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            太空数据中心是一个新兴概念，即将服务器农场放置在太阳同步轨道等轨道上，利用持续的太阳能为 AI 训练等能源密集型任务供电。地面数据中心日益受到廉价电力和冷却资源可用性的限制，从而产生了对替代能源的需求。以 Starlink 等服务闻名的巨型星座由数百或数千颗卫星组成，如果单个单元发生故障，系统仍能保持服务降级运行而非完全中断。最近的行业趋势显示，SpaceX 等公司正在探索类似的轨道边缘计算理念，以便在数据源头或能源丰富的地方处理数据。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-3">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              7.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://www.bloomberg.com/news/articles/2026-03-19/google-begins-testing-gemini-mac-app-to-match-chatgpt-and-claude" target="_blank" rel="noopener">谷歌启动 Gemini Mac 原生应用私人内测</a>
+            </div>
+          </div>
+          <div class="item-meta">telegram · zaihuapd · 2026-03-20 00:06</div>
+          
+          <div class="item-summary">谷歌已正式向消费者测试计划参与者分发 Gemini for Mac 的原生应用早期版本，启动了私人内测。这款新的桌面客户端通过名为</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">google</span><span class="tag">gemini</span><span class="tag">macos</span><span class="tag">ai-applications</span><span class="tag">industry-news</span>
+          </div>
+          
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-1-st0-4">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              7.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://www.theverge.com/ai-artificial-intelligence/897778/openai-chatgpt-codex-atlas-browser-superapp" target="_blank" rel="noopener">OpenAI 计划推出整合 ChatGPT、Codex 与 Atlas 的桌面超级应用</a>
+            </div>
+          </div>
+          <div class="item-meta">telegram · zaihuapd · 2026-03-20 05:05</div>
+          
+          <div class="item-summary">OpenAI 正在开发一款统一的桌面端“超级应用”，将 ChatGPT 助手、Codex AI 编程代理以及 Atlas 网页浏览器整合到同一个界面中。Fidji Simo 在内部备忘录中确认，这一战略举措旨在解决产品线碎片化问题，该问题据称已拖慢了开发速度并影响了质量标准。虽然桌面端体验将被整合，但公司明确表示移动版 ChatGPT 将保持不变。 随着面临来自 Anthropic 等竞争对手日益激烈的压力（其 Claude Code 工具已在开发者中获得显著关注），此次整合代表了 OpenAI 的关键战略转型。通过统一工具，OpenAI 希望简化用户工作流并加速功能交付，从而避免被分散的“支线任务”干扰。这款超级应用的成功与否，可能决定 OpenAI 能否在面对提供集成编码和浏览解决方案的专业竞争对手时保持市场领先地位。 该举措专门针对桌面环境，以解决管理层关于产品碎片化阻碍进展的担忧，同时明确将移动平台排除在此次合并之外。内部指令强调降低非核心项目的优先级，以确保团队能够专注于在统一应用中实现更高的质量标准。此次重新聚焦发生在公司积极审查项目组合以消除干扰的时期。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">openai</span><span class="tag">product-strategy</span><span class="tag">developer-tools</span><span class="tag">ai-applications</span><span class="tag">industry-dynamics</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            OpenAI 最近扩展了其生态系统，推出了独立的产品：用于通用对话的 ChatGPT、用于自主软件工程任务的 Codex（2025 年 5 月作为研究预览版发布），以及 Atlas（2025 年 10 月发布，一款内置 AI 功能的 MacOS 浏览器）。将这些维持为独立的应用程序造成了碎片化的用户体验，从而催生了对连贯桌面解决方案的需求。竞争对手 Anthropic 最近凭借 Claude Code 给市场带来了压力，凸显了行业向一体化 AI 开发环境发展的趋势。
+          </div>
+          
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    
+
+    <footer>Horizon — AI-Driven Information Aggregation</footer>
+  </div>
+  
+  
+  <div class="page" data-page-idx="2">
+    <div class="section-header">
+      <h2>关注动态</h2>
+      <div class="section-count">共 3 条</div>
+    </div>
+
+    
+    <div class="columns-flow">
+      
+      <div class="col-card" id="sec-2-1">
+        <div class="item-header">
+          
+          <div class="item-title">
+            <a href="https://github.com/zilliztech/memsearch/commit/cd67906f4885f8e4a0d3442b4dd71a31afa4fb7d" target="_blank" rel="noopener">MemSearch Updates: 3 updates — bump ccplugin version to 0.2.7, Merge pull request #201 from fabiosiqueira/fix/orphaned-index-milvus-…, Merge pull request #200 from kottj/fix/stop-hook-config-api-key-fallback</a>
+          </div>
+        </div>
+        <div class="item-meta">rss · MemSearch Updates · 2026-03-20 02:52</div>
+        
+        <div class="item-summary">本次更新将 ccplugin 依赖升级至 0.2.7 版本，并修复了两个关键的配置问题。具体包括解决了 Milvus 清理操作中遗留孤立索引的缺陷，以及修正了停止钩子配置中的 API 密钥回退逻辑。这些改动提升了资源管理的可靠性，并确保服务关闭时认证配置能正确生效。</div>
+        
+        
+        
+        
+      </div>
+      
+      <div class="col-card" id="sec-2-2">
+        <div class="item-header">
+          
+          <div class="item-title">
+            <a href="https://github.com/openai/codex/releases/tag/rust-v0.117.0-alpha.5" target="_blank" rel="noopener">openai/codex: 4 releases — rust-v0.117.0-alpha.5, rust-v0.117.0-alpha.3, rusty-v8-v146.4.0</a>
+          </div>
+        </div>
+        <div class="item-meta">github · 2026-03-20 07:54</div>
+        
+        <div class="item-summary">该仓库发布了四个新的预发布版本，将 Rust 集成更新至 v0.117.0-alpha.5，并将 rusty-v8 绑定更新至 v146.4.0。这些快速迭代的发布（从 alpha.2 到 alpha.5）可能包含针对底层 JavaScript 引擎绑定的增量稳定性改进和错误修复。使用 Rust 组件的开发者应升级到最新的 alpha 版本以确保与更新后的 V8 引擎兼容，尽管发布说明中未详述具体的破坏性变更。</div>
+        
+        
+        
+        
+      </div>
+      
+      <div class="col-card" id="sec-2-3">
+        <div class="item-header">
+          
+          <div class="item-title">
+            <a href="https://github.com/anthropics/claude-code/releases/tag/v2.1.80" target="_blank" rel="noopener">anthropics/claude-code released v2.1.80</a>
+          </div>
+        </div>
+        <div class="item-meta">github · 2026-03-19 22:08</div>
+        
+        <div class="item-summary">此版本引入了重要的扩展性和可观测性功能，包括用于状态行脚本的 `rate_limits` 字段、通过 settings.json 声明的内联插件，以及用于 MCP 服务器消息推送的实验性 `--channels` 标志。关键稳定性修复解决了语音模式 WebSocket 故障、会话恢复时并行工具结果丢失以及 API 代理流式传输错误等问题。性能方面进行了优化，降低了大型仓库的启动内存占用并提升了自动补全响应速度。此外，修复了受管设置在缓存存在时无法在启动时应用的问题，确保策略强制配置能正确生效。</div>
+        
+        
+        
+        
+      </div>
+      
+    </div>
+    
+
+    <footer>Horizon — AI-Driven Information Aggregation</footer>
+  </div>
+  
+  
+  <div class="page" data-page-idx="3">
+    <div class="section-header">
+      <h2>GitHub 热榜</h2>
+      <div class="section-count">共 24 条</div>
+    </div>
+
+    
+    
+    <div class="sub-topic-section">
+      <h3 class="sub-topic-title">模型优化推理 <span class="sub-topic-count">4</span></h3>
+      <div class="columns-flow">
+        
+        <div class="col-card" id="sec-3-st0-1">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              10.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/unslothai/unsloth" target="_blank" rel="noopener">Unsloth 加速本地大模型的训练与推理</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - Daily · 2026-03-20 01:31</div>
+          
+          <div class="item-summary">Unsloth 推出了统一的 Web 界面（Studio）及其核心库，旨在简化本地运行和训练超过 500 种开源模型的过程。它现在支持包括音频、视觉和文档解析在内的多模态输入，同时以显著降低的显存需求实现了高效的强化学习。 该工具对 AI 工程师至关重要，因为它重写了关键的大语言模型模块，相比标准的 Hugging Face 实现，实现了高达 2 倍的训练速度和减少 70% 的显存占用。通过使全量微调和 QLoRA 等高级技术在消费级 GPU 上变得可行，它普及了尖端模型定制的使用。可视化界面的加入降低了数据准备和实验跟踪的门槛，同时并未牺牲代码级别的控制能力。 Unsloth 支持 4 位、16 位和 FP8 训练格式，同时在 Llama 3、Qwen 和 Gemma 等模型上保持精度不变。其主要功能包括自愈式工具调用、代码执行沙箱以及从 PDF 和 DOCX 等多种文件格式自动创建数据集。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">llm</span><span class="tag">fine-tuning</span><span class="tag">pytorch</span><span class="tag">optimization</span><span class="tag">ai-infrastructure</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            在 Unsloth 出现之前，微调大语言模型通常需要昂贵的企业级硬件或对内存内核进行复杂的 manual 优化。现有的解决方案如标准 PEFT 库虽然提供了参数效率，但缺乏在有限硬件上实现最大吞吐量所需的底层内核优化。Unsloth 通过提供可与 PyTorch 和 Hugging Face 生态系统无缝集成的预优化 Triton 内核，填补了这一空白。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            AI 工程社区广泛认为 Unsloth 是必不可少的工具，用户报告称在单张消费级 GPU 上成功微调了超过 700 亿参数的模型。讨论经常强调其相较于标准 LoRA 实现的卓越速度，以及其新的 Studio 界面在快速原型设计中的实用价值。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-2">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              10.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/thu-ml/SageAttention" target="_blank" rel="noopener">SageAttention 通过量化实现 2-5 倍加速</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+          
+          <div class="item-summary">SageAttention 引入了一种新型量化注意力机制，在语言、图像和视频模型上实现了比 FlashAttention 快 2-5 倍的性能。与以往的量化尝试不同，它在几乎不损失端到端精度的情况下，显著降低了推理延迟。 这一突破直接解决了生产级 AI 系统中注意力操作的计算瓶颈，为在资源受限硬件上部署大型 Transformer 模型提供了可行路径。通过在牺牲质量的情况下超越 FlashAttention，它加快了生成式 AI 应用的迭代周期并降低了运营成本。其有效处理异常值的能力使其在文本之外的多模态任务中同样稳健。 该库利用专为 CUDA 内核优化的 INT8 和 INT4 量化技术以最大化吞吐量。它被设计为标准注意力模块的直接替代品，支持以最小的代码更改集成到现有工作流中。在长上下文场景中，性能提升最为显著，因为这些场景通常受限于内存带宽。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">attention-mechanism</span><span class="tag">quantization</span><span class="tag">cuda</span><span class="tag">llm-inference</span><span class="tag">deep-learning</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            Transformer 模型严重依赖注意力机制，由于高昂的内存访问成本，这往往是推理过程中的主要瓶颈。虽然 FlashAttention 通过优化 I/O 感知提高了效率，但进一步的增益需要在不降低模型输出的前提下减少数值精度。SageAttention 通过将激进的量化与异常值管理相结合，在低位宽下保持精度，从而填补了这一空白。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            早期采用者强调了集成的便捷性以及在 LLM 服务环境中观察到的即时性能收益。一些讨论指出，虽然 INT4 提供了更快的速度，但对于特定领域的适配仍需仔细校准以完全消除指标漂移。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-3">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/HKUDS/LightRAG" target="_blank" rel="noopener">LightRAG：快速图向量混合检索增强生成框架</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - Python · 2026-03-20 01:38</div>
+          
+          <div class="item-summary">LightRAG 引入了一种双层图索引策略，结合向量嵌入与图结构以优化检索速度和上下文完整性。近期更新集成了 RAGAS 评估指标和 Langfuse 追踪功能，提升了生产环境的可观测性。该框架消除了以往的处理瓶颈，能够高效支持大规模文档摄入。 标准向量搜索往往遗漏复杂的关系上下文，而像微软 GraphRAG 这样的重型图方法对于实时应用来说又过于缓慢。LightRAG 填补了这一空白，提供了一种轻量级替代方案，既保留了知识图谱的关系推理能力，又避免了巨大的计算开销。这使得高质量、富含上下文的 RAG 在低延迟的生产系统中成为可能。开发者现在可以在不牺牲查询性能的情况下实现更深层的语义理解。 该项目利用双层图索引同时捕获底层细节和高层抽象。它通过简单的 Python API 支持与现有 LLM 工作流的无缝集成，并提供内置的评估和追踪工具。性能基准测试表明，其索引和查询速度明显快于传统的基于图的 RAG 解决方案。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">rag</span><span class="tag">llm</span><span class="tag">graph-rag</span><span class="tag">retrieval</span><span class="tag">nlp</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            检索增强生成（RAG）通过将大模型回答建立在外部数据基础上来提升效果，但朴素的向量搜索难以处理多跳推理和全局上下文感知。虽然 GraphRAG 通过构建全面的知识图谱改善了这一点，但其高昂的计算成本和缓慢的索引过程限制了其在动态或大规模数据集上的实用性。LightRAG 提出了一种简化的图结构，在保持关系完整性的同时大幅减少处理时间，从而解决了这些局限性。这种方法使系统能够在图分析的深度与现代应用所需的速度之间取得平衡。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            AI 工程社区对 LightRAG 能够在不需要巨大计算资源的情况下普及基于图的 RAG 给予了积极回应。早期采用者强调了其部署的简便性，以及在处理复杂查询时相比标准向量数据库获得的即时性能提升。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-4">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/alibaba/rtp-llm" target="_blank" rel="noopener">阿里巴巴开源高性能推理引擎 RTP-LLM</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+          
+          <div class="item-summary">阿里巴巴发布了 RTP-LLM，这是一个面向生产环境的推理引擎，专为支持各业务部门的大型语言及视觉语言模型而优化。该项目集成了 FlashAttention2 和 PagedAttention 等先进 CUDA 内核，旨在最大化 NVIDIA GPU 的吞吐量。它独特地支持无缝部署 HuggingFace 模型，并提供动态批处理和仅权重 INT8 量化等功能。 该引擎解决了企业生产环境中 LLM 服务高延迟和高成本的关键瓶颈。通过利用在阿里巴巴庞大生态系统（淘宝、天猫）中验证过的优化技术，它为降低基础设施成本同时保持低延迟提供了可靠路径。对于 AI 工程师而言，它提供了一个强大的替代方案，特别擅长处理不规则模型和多 LoRA 服务，且无需复杂的转换步骤。 RTP-LLM 基于 FasterTransformer 构建，并整合了来自 TensorRT-LLM 的内核实现以确保性能稳定性。它原生支持广泛的架构，包括 LLaMA、Qwen、Baichuan 以及 LLAVA 等多模态模型。关键技术特性包括推测解码、Medusa 加速以及用于扩展的高效多机张量并行。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">llm</span><span class="tag">inference</span><span class="tag">ai-infrastructure</span><span class="tag">cuda</span><span class="tag">alibaba</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            大型语言模型推理在扩展到生产工作负载时，常受限于内存带宽限制和低效的批处理策略。之前的解决方案如 vLLM 和 TensorRT-LLM 虽解决了部分问题，但往往需要大量的模型转换或缺乏对特定旧架构的灵活性。RTP-LLM 填补了这一空白，提供了一个高度灵活的引擎，在原始性能与现有 HuggingFace 工作流的集成便利性之间取得了平衡。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            AI 基础设施社区密切关注此发布，视其为 vLLM 的潜在挑战者，特别是对于已投资阿里云生态的用户。早期反馈强调，相较于仅专注于 H100/A100 的新引擎，它对 V100 等旧款 GPU 架构提供了更卓越的支持。
+          </div>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="sub-topic-section">
+      <h3 class="sub-topic-title">CUDA 高性能计算 <span class="sub-topic-count">9</span></h3>
+      <div class="columns-flow">
+        
+        <div class="col-card" id="sec-3-st0-1">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              10.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/NVlabs/instant-ngp" target="_blank" rel="noopener">Instant-NGP：通过哈希编码实现闪电般速度的神经辐射场</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+          
+          <div class="item-summary">Instant-NGP 引入了一种多分辨率哈希编码技术，将神经辐射场（NeRF）的训练时间从数小时大幅缩短至数秒。该框架利用 CUDA 内核优化了神经网络架构和输入表示，以最大化 GPU 效率。它实现了实时渲染和交互式场景编辑，这在标准的 NeRF 实现中以前是不可能做到的。 早期的 NeRF 方法受限于极长的训练时间，限制了其在动态环境或迭代设计工作流中的实际应用。Instant-NGP 通过高效的空间数据结构解决了收敛速度慢的瓶颈，使高保真 3D 重建能够应用于 VR 和游戏等实时场景。这一转变将 NeRF 从纯粹的研究概念转化为生产图形流水线中可行的工具。因此，它已成为现代 3D AI 研发的基础设施。 其核心创新是一个可学习的多分辨率哈希表，它将空间坐标映射到特征向量，使网络仅在必要的地方关注细节。该系统完全使用 CUDA/C++ 实现以确保底层性能，并提供 Python 绑定以便轻松集成到现有的深度学习工作流中。除了 NeRF，它还支持多种图元，包括神经表面和符号距离场，所有这些都受益于相同的加速策略。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">nerf</span><span class="tag">cuda</span><span class="tag">3d-vision</span><span class="tag">deep-learning</span><span class="tag">computer-graphics</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            神经辐射场（NeRF）通过将场景表示为连续函数彻底改变了视图合成，但最初需要在强大的 GPU 上进行耗时的训练。传统方法依赖于密集的位置编码，这在计算上成本高昂且难以优化高频细节。Instant-NGP 通过用稀疏自适应哈希网格替换这些低效编码，填补了实时 3D 内容创作的空白。与之前的解决方案相比，这种方法使模型收敛速度提高了几个数量级，同时保持或提升了视觉质量。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            工程界普遍认为 Instant-NGP 是任何新 NeRF 相关研究的默认标准基线，因其无与伦比的速度和代码质量而备受推崇。开发者经常称赞其模块化的 C++ 后端，以及在不牺牲性能的情况下轻松扩展以用于自定义 3D 任务的能力。然而，一些用户指出，如果没有适当的环境配置，在非 Linux 系统或使用特定 GPU 架构时，从头构建该项目可能会具有挑战性。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-2">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/deepseek-ai/DeepEP" target="_blank" rel="noopener">DeepEP：面向 MoE 训练的高性能专家并行通信库</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+          
+          <div class="item-summary">深度求索（DeepSeek AI）发布了 DeepEP，这是一个专为大规模混合专家（MoE）模型优化的专家并行通信 CUDA 库。它提供了高吞吐量、低延迟的全对全（all-to-all）GPU 内核，专门用于处理 MoE 的分发与合并操作。该库还集成了对低精度 FP8 运算的支持，以符合现代训练效率标准。 训练大规模 MoE 模型时，专家路由阶段的 GPU 间通信往往成为严重瓶颈，限制了集群的可扩展性。DeepEP 通过提供生产级内核解决了这一问题，在最大化带宽利用率的同时最小化了延迟开销。这使得基础设施工程师能够更高效地训练更大的稀疏模型，而不受网络通信限制。其优化对于降低超大规模 AI 训练基础设施的总拥有成本至关重要。 该库包含针对 DeepSeek-V3 中群组限制门控算法优化的全对全通信内核。它支持细粒度的 FP8 缩放，并通过轻量级的即时（JIT）编译模块运行，无需预先编译。DeepEP 旨在无缝集成到现有的基于 PyTorch 的 MoE 架构分布式训练工作流中。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">cuda</span><span class="tag">moe</span><span class="tag">distributed-training</span><span class="tag">deep-learning</span><span class="tag">gpu</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            混合专家（MoE）架构允许模型显著增加参数量，同时通过仅激活每个令牌的一部分专家来保持计算效率。然而，像 NCCL 这样的标准通信库并未完全针对 MoE 训练中固有的不规则、令牌级全对全流量模式进行优化。以前的解决方案在处理稀疏专家路由时，常常面临高延迟或硬件资源利用率不足的问题。DeepEP 填补了这一空白，提供了一种专门针对这些独特通信需求垂直整合的解决方案。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            早期采用者强调 DeepEP 能够在 NVIDIA Hopper GPU 上实现接近硬件极限的带宽，标志着它是下一代大语言模型训练的重要工具。一些讨论指出其与 DeepSeek 特定门控算法的紧密耦合，这可能需要在通用 MoE 实现中进行调整。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-3">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/Dao-AILab/causal-conv1d" target="_blank" rel="noopener">面向 Mamba 的优化因果一维卷积 CUDA 内核</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+          
+          <div class="item-summary">Dao-AILab 发布了一个专为因果深度一维卷积设计的高度优化 CUDA 实现，并提供了原生的 PyTorch 接口。该库支持 fp32、fp16 和 bf16 多种精度格式，并能高效处理大小为 2、3 和 4 的卷积核。它是大规模运行 Mamba 状态空间模型架构所关键的基础底层依赖。 标准的深度学习框架通常缺乏针对因果深度卷积的专用内核，导致序列建模任务的性能不佳。通过提供定制的 CUDA 解决方案，该项目消除了内存带宽瓶颈，显著加速了 Mamba 等模型的训练和推理。这种优化对于使次二次方复杂度的序列模型在长上下文任务中具备与 Transformer 竞争的能力至关重要。如果没有此类底层改进，新架构的理论效率就无法在实际中得到体现。 该库直接集成到 PyTorch 工作流中，无需使用 C++ 重写模型逻辑即可实现无缝采用。它明确针对现代状态空间模型中发现的因果掩码和深度通道分离的特定约束。在处理标准卷积实现受限于内存带宽的长序列时，其性能提升最为明显。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">cuda</span><span class="tag">pytorch</span><span class="tag">deep-learning</span><span class="tag">kernels</span><span class="tag">mamba</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            序列建模长期以来一直由 Transformer 主导，但其二次方的复杂度限制了其在超长上下文中的应用。Mamba 架构作为一种有前景的替代方案应运而生，它利用结构化状态空间实现线性扩展，但严重依赖于高效的因果卷积操作。此前的解决方案通常依赖于通用卷积内核，未能利用这些新模型特有的稀疏性和因果模式。该项目通过交付一个专为最大化此特定操作的 GPU 利用率而构建的内核，填补了这一空白。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            鉴于该项目在启用 Mamba 方面的作用，AI 工程社区将其视为至关重要的基础设施更新，而不仅仅是另一个模型仓库。开发人员特别有兴趣在不同 GPU 架构上基准测试其相对于标准 PyTorch 卷积的速度提升。随着 Mamba 生态系统扩展到包含多模态应用，人们对进一步的优化充满了期待。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-4">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/rapidsai/cuvs" target="_blank" rel="noopener">NVIDIA cuVS 加速 GPU 向量搜索与聚类</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+          
+          <div class="item-summary">NVIDIA 发布了 cuVS，这是 RAPIDS 生态系统中一个专为 GPU 高性能向量搜索和聚类设计的开源库。该库基于 RAFT 构建，提供了优化的例程，能显著加快大规模数据集的索引构建和查询延迟。 随着检索增强生成（RAG）应用的增长，瓶颈往往转移到索引和检索过程中的向量数据库性能上。cuVS 通过利用 NVIDIA CUDA 核心解决了这一问题，与标准 CPU 或传统 GPU 实现相比，其索引构建速度最快可提升 12 倍，搜索延迟降低 8 倍。这种性能飞跃使得实时语义搜索和处理此前难以实现的十亿级向量索引成为可能。 该库能与现有生态系统无缝集成，包括通过 lucene-cuvs 项目对 Faiss、OpenSearch 和 Elasticsearch 的增强。它支持可扩展的数据分析工作流，并与 cuPY 和 Dask 等 Python 数据科学工具互操作。开发者可用它来加速现有系统，或从头构建新的高吞吐量搜索引擎。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">gpu</span><span class="tag">vector-search</span><span class="tag">cuda</span><span class="tag">machine-learning</span><span class="tag">rapids</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            在 cuVS 出现之前，开发者依赖碎片化的解决方案或优化不足的 GPU 版 Faiss 等库来进行向量运算。虽然 FAISS 提供了 GPU 支持，但将其深度集成到更广泛的数据科学管道中通常需要大量的定制工程。cuVS 填补了这一空白，提供了一个统一且生产就绪的接口，专门为现代 RAPIDS 和 CUDA 硬件环境进行了调优。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            AI 工程社区正在积极探索与 Elasticsearch 和 OpenSearch 等主要搜索平台的集成，以绕过 CPU 瓶颈。早期基准测试突显了其在降低大语言模型记忆系统的成本和延迟方面的关键作用。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-5">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/NVIDIA/cuopt" target="_blank" rel="noopener">NVIDIA cuOpt：GPU 加速决策优化库</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+          
+          <div class="item-summary">NVIDIA 发布了 cuOpt，这是一个专为利用 GPU 加速解决大规模决策优化和路径规划问题而设计的库。该工具利用 CUDA 核心，与传统基于 CPU 的求解器相比，能显著加快复杂运筹学任务的处理速度。 传统的优化求解器在处理大规模物流和路径规划场景的计算强度时往往力不从心，导致迭代速度缓慢。通过将这些计算卸载到 GPU 上，cuOpt 能够为供应链管理和网约车等动态环境提供实时或近实时的解决方案。这种转变使工程师能够解决以前被认为在计算上不可行的问题规模。 cuOpt 提供了 Python API，用于定义数据模型、求解器设置以及执行路由和分配问题的批量求解。它专门针对车辆路径问题（VRP）、旅行商问题（TSP）以及有容量限制的取送货场景进行了优化。该库可集成到现有的 NVIDIA GPU 生态系统中，并支持容器化部署以实现可扩展的基础设施。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">optimization</span><span class="tag">cuda</span><span class="tag">gpu</span><span class="tag">operations-research</span><span class="tag">nvidia</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            运筹学历史上一直依赖于像 Gurobi 或 OR-Tools 这样的基于 CPU 的求解器，随着问题复杂度呈指数级增长，这些求解器面临着扩展极限。cuOpt 填补了现代数据密集型物流网络所需的高吞吐量、低延迟优化的空白。与通用人工智能框架不同，它严格专注于通过并行处理加速的数学规划和启发式求解。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            作为一个相对较新的专用库，目前的社区讨论主要集中在与现有数据流水线的集成模式以及与 CPU 求解器的基准测试对比上。用户对它在动态重路由用例中的性能提升特别感兴趣。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-6">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/rahul-goel/fused-ssim" target="_blank" rel="noopener">面向深度学习的 CUDA 加速可微分 SSIM 库</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+          
+          <div class="item-summary">该项目推出了一种基于 CUDA 的高度优化的结构相似性指数（SSIM）实现，且完全可微分。它支持在深度学习训练循环中直接在 GPU 上进行极速的图像相似度计算。 传统的 SSIM 实现通常依赖 CPU 处理或不可微分的操作，这在图像重建和生成模型训练中形成了瓶颈。通过提供原生 GPU 支持且可微分的版本，该库使得 SSIM 能够作为损失函数有效地用于端到端优化。这显著加速了超分辨率、去噪和压缩等对感知质量至关重要的工作流程。 该库利用 NVIDIA 的 CUDA 架构并行化处理 SSIM 所需的复杂基于窗口的计算。它专为集成到 PyTorch 或其他需要自动微分的框架而设计。其实现重点在于最小化内存开销，同时最大化批量图像处理的吞吐量。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">cuda</span><span class="tag">computer-vision</span><span class="tag">deep-learning</span><span class="tag">optimization</span><span class="tag">image-processing</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            结构相似性指数测量（SSIM）是一种基于感知的指标，通过分析结构信息、亮度和对比度来评估图像质量，是均方误差（MSE）的优越替代品。然而，scikit-image 等标准库在 CPU 上计算 SSIM，对于迭代式深度学习优化来说速度太慢。此外，许多现有的 GPU 移植版本缺乏完全的可微分性，阻碍了其作为基于梯度的损失函数的使用。该项目填补了对高性能、可训练指标的空白，使优化目标与人类视觉感知保持一致。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-7">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/siboehm/SGEMM_CUDA" target="_blank" rel="noopener">从零构建的教育级 CUDA SGEMM 实现集合</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+          
+          <div class="item-summary">该项目提供了一系列完全用 CUDA C++ 编写的单精度通用矩阵乘法（SGEMM）内核，旨在演示性能调优技术。它从基础实现开始，逐步构建包含共享内存分块和 Warp 级优化等高级技术的算子。该代码库作为透明参考，帮助开发者在不依赖黑盒库的情况下深入理解 GPU 硬件利用率。 矩阵乘法是深度学习推理和训练的计算核心，其优化对 AI 基础设施至关重要。虽然 cuBLAS 等库提供了峰值性能，但它们掩盖了编写自定义算子或融合内核所需的底层机制。该项目通过展示手动逼近硬件极限所需的逐步逻辑，填补了这一空白。对于需要超越标准库能力以支持新型模型架构的工程师来说，它具有特别高的价值。 该仓库包含多个内核版本，逐步引入全局内存合并、共享内存缓存和寄存器分块等优化技术。其中包括与矩阵操作相关的 CUDA 内存层次结构和 Warp 调度器行为的详细解释。这些实现旨在追求教育清晰度，而非直接与 CUTLASS 等高度调优的生产级库竞争。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">cuda</span><span class="tag">gpu-programming</span><span class="tag">matrix-multiplication</span><span class="tag">high-performance-computing</span><span class="tag">deep-learning-infrastructure</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            SGEMM（单精度通用矩阵乘法）是标准的 BLAS 操作，占据了大多数神经网络层的运行时间。历史上，在 GPU 上实现高性能需要深厚的硬件特定调优专业知识，通常只能通过专有库获得。以前的开源示例要么过于简单而无用，要么过于复杂而无法作为学习工具。该项目通过提供平衡可读性与高性能技术的中等复杂度代码，填补了这一空白。
+          </div>
+          
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-8">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              7.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/BBuf/how-to-optim-algorithm-in-cuda" target="_blank" rel="noopener">CUDA 算法优化技术的实战指南</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+          
+          <div class="item-summary">该仓库提供了一系列针对 CUDA 架构优化算法的代码示例和技术指南。它超越了理论概念，直接展示了内存合并、占用率最大化以及指令级改进等底层调优策略。 对于构建自定义推理引擎或高性能内核的 AI 工程师而言，即使是微秒级的改进也能在大规模部署中显著降低延迟。虽然 PyTorch 等框架能处理通用情况，但专用工作负载通常需要手动内核优化以充分利用 GPU 带宽和计算单元。该资源填补了高级库使用与手写 PTX 汇编之间的空白，为性能关键型应用提供了可操作的模式。 该项目涵盖了关键的优化支柱，包括全局内存合并、共享内存分块以及控制发散减少。它不仅包含特定于硬件的调优，还提供了通过算法重写提高数学效率的实际对比。用户可以期待具体的代码片段而非抽象建议，使其适合直接集成到自定义 CUDA 内核中。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">cuda</span><span class="tag">gpu-optimization</span><span class="tag">high-performance-computing</span><span class="tag">deep-learning-infrastructure</span><span class="tag">kernels</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            随着深度学习模型复杂度的增加，标准库往往无法满足实时系统或边缘设备的严格延迟要求。以往的解决方案通常要求开发者翻阅密集的 NVIDIA 文档，或在没有明确指导的情况下逆向工程像 CUTLASS 这样的优化库。该项目将经过验证的技术汇总为易于理解的格式，满足了 GPU 性能工程领域对结构化学习的需求。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            该仓库在寻求通用教程替代方案的开发者中获得了关注，用户强调其在面试准备和生产内核调优方面的实用性。社区反馈表明，对于那些从基于框架的开发过渡到低级 CUDA 编程的人员来说，它尤其有价值。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-9">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              7.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/brucefan1983/GPUMD" target="_blank" rel="noopener">GPUMD：支持机器学习势函数的高性能 GPU 分子动力学引擎</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - CUDA · 2026-03-20 01:33</div>
+          
+          <div class="item-summary">GPUMD 4.0 确立了自己作为完全基于 GPU 原生开发的分子动力学软件包的地位，专为 NVIDIA CUDA 架构优化。它独特地集成了神经进化势（NEP）框架，允许用户在模拟工作流中直接训练和部署机器学习原子间势函数。此版本强调在保持从头算精度的同时，实现大规模原子系统的可扩展性能。 对于从事科学计算的 AI 工程师而言，GPUMD 架起了深度学习模型与高性能物理模拟之间的桥梁。与需要复杂接口的一般框架不同，GPUMD 提供了一个统一的环境，使机器学习势函数的运行速度可与经验力场相媲美。这种能力显著降低了以量子力学精度探索材料属性和化学反应的计算成本。它是加速消费级和企业级 GPU 上药物发现及材料设计工作流的关键工具。 该软件要求 NVIDIA GPU 的计算能力不低于 3.5，并通过 CUDA 9.0+ 工具包支持 Linux 和 Windows 环境。它包含了用于运行分子动力学模拟（&#39;gpumd&#39;）和训练 NEP 模型（&#39;nep&#39;）的内置可执行文件。该数据包提供了广泛的文档和 Colab 教程，以协助构建针对特定系统（如 PbTe）的 NEP 模型。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">molecular-dynamics</span><span class="tag">cuda</span><span class="tag">hpc</span><span class="tag">computational-chemistry</span><span class="tag">gpu-acceleration</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            传统的分子动力学软件包往往难以在精确多体势的高计算成本与大规模模拟的需求之间取得平衡。虽然基于 CPU 的代码提供了精度，但它们缺乏现代材料科学挑战（涉及数百万个原子）所需的吞吐量。GPUMD 通过利用 GPU 的大规模并行性来加速多体势的力和热流计算，从而解决了这一问题。它通过专门优化传统引擎上推理开销较高的机器学习势函数，填补了这一细分领域的空白。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            该项目维护着一个活跃的用户支持和技术问答邮件列表，表明其拥有一个专注但专业的用户群。最近的学术引用突显了其在热导率研究和晶格动力学研究中日益增长的应用率。
+          </div>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="sub-topic-section">
+      <h3 class="sub-topic-title">AI 智能体应用 <span class="sub-topic-count">6</span></h3>
+      <div class="columns-flow">
+        
+        <div class="col-card" id="sec-3-st0-1">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/langchain-ai/open-swe" target="_blank" rel="noopener">LangChain 发布用于内部编码代理的 Open SWE 框架</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - Daily · 2026-03-20 01:31</div>
+          
+          <div class="item-summary">LangChain 推出了 Open SWE，这是一个旨在帮助组织构建和部署异步编码代理的开源框架。该框架基于 LangGraph 和 Deep Agents 构建，复现了 Stripe 和 Coinbase 等顶尖工程团队使用的架构。它提供了用于云沙箱、Slack 集成和自动创建拉取请求的开箱即用组件。 此次发布让以前只有少数大型科技公司才能定制的生产级自主代理架构变得普及。通过提供可组合的框架而非僵化的产品，它允许工程组织根据其特定的内部工作流程定制安全边界和工具权限。这显著降低了团队实施无需人工持续干预的“发射后不管”式编码代理的门槛。最终，它将行业焦点从交互式编码助手转向了完全异步的背景软件开发流程。 Open SWE 利用隔离的云沙箱（支持 Modal 和 Daytona 等提供商），确保每个任务都在受控环境中运行，杜绝生产环境访问风险。它具有模块化的代理 harness，允许开发者在保持上游更新路径的同时，自定义编排、工具和中间件。该系统支持与 Slack 等通信平台和 Linear 等项目管理工具的原生集成，以实现无缝调用。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">ai-agents</span><span class="tag">software-engineering</span><span class="tag">langchain</span><span class="tag">automation</span><span class="tag">llm</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            在此次发布之前，构建可靠的异步编码代理需要大量的工程资源来从头开发安全的沙箱和复杂的编排逻辑。大多数现有解决方案要么是缺乏后台执行能力的交互式 CLI 工具，要么是闭源的企业产品。Open SWE 通过提供安全自主代码生成和修改所需的基础设施模式，填补了这一空白。它解决了对于能够在无需持续人工监督的情况下处理长期运行任务，同时保持严格安全协议的代理的迫切需求。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            AI 工程社区特别关注 Open SWE 与 Devin 等新兴竞争对手相比如何，以及其沙箱抽象是否足以适应多样的企业环境。早期的讨论强调了其可组合性优于单体代理解决方案的价值，尽管一些用户正在寻求关于特定中间件配置的更多文档。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-2">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/alibaba/OpenSandbox" target="_blank" rel="noopener">阿里开源 OpenSandbox 保障 AI 智能体执行安全</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - Python · 2026-03-20 01:38</div>
+          
+          <div class="item-summary">阿里巴巴发布了 OpenSandbox，这是一个旨在安全运行代码执行和 GUI 交互等 AI 智能体任务的通用平台。它提供了统一的 API 和多语言 SDK，用于管理跨 Docker 和 Kubernetes 集群的沙箱环境。该项目专门针对代码智能体、强化学习训练和自主任务评估的生产需求。 随着 AI 智能体自主性的增强，不可信代码执行导致系统损坏或数据泄露的风险变得至关重要。OpenSandbox 通过提供基于 gVisor 和 Kata Containers 等安全容器运行时的强隔离性，填补了主要的 инфраструктура缺口。这使得工程师能够部署激进的强化学习循环和编码智能体，而无需牺牲主机安全性。通过标准化沙箱层，它减少了为每个新智能体应用构建自定义隔离解决方案的运营开销。 该平台支持多种场景，包括浏览器自动化、通过 VNC 实现的桌面环境以及安全的代码解释器。它具有统一的入口网关用于网络路由，并提供细粒度的出口控制以防止未经授权的外部访问。内置的高性能 Kubernetes 调度支持可实现大规模分布式智能体训练和评估工作流。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">ai-agents</span><span class="tag">sandboxing</span><span class="tag">infrastructure</span><span class="tag">code-execution</span><span class="tag">devops</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            在 OpenSandbox 出现之前，开发人员通常依赖临时的 Docker 配置或专有云服务来隔离 AI 智能体的操作，导致安全态势不一致且维护成本高。现有解决方案往往缺乏对复杂 GUI 交互的原生支持，或缺乏满足强化学习训练循环特定低延迟要求的能力。OpenSandbox 通过提供一个与现代化编排工具深度集成并支持先进隔离技术的供应商中立开源标准，解决了这些局限性。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            该项目迅速获得关注，在发布两天内就获得了近 4000 个 GitHub 星标，表明市场对生产级智能体基础设施的强烈需求。早期采用者对其能够在单一 API 规范下统一本地开发和大规模集群部署的能力特别感兴趣。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-3">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/jarrodwatts/claude-hud" target="_blank" rel="noopener">Claude HUD：实时智能体可观测性插件</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - Daily · 2026-03-20 01:31</div>
+          
+          <div class="item-summary">Claude HUD 是一款专为 Claude Code 设计的新插件，可在终端界面内直接显示智能体状态、上下文消耗及任务进度的实时数据。它利用原生的状态行 API 展示活跃工具、运行中的子智能体和待办事项，无需额外窗口或外部仪表盘。 随着大模型上下文窗口的扩大，监控令牌使用和“上下文腐烂”对于防止性能下降和意外成本至关重要。该工具通过提供对工具执行和资源限制的即时可见性，解决了 AI 智能体的“黑盒”问题。开发者现在可以在上下文限制导致失败或幻觉之前主动管理会话健康。它将抽象的 API 指标转化为终端内可操作的可视化数据。 该插件具备颜色编码的上下文条、详细的工具活动日志（读取/编辑/搜索）以及带有耗时的子智能体追踪功能。安装过程包括添加市场源和配置状态行，并针对 Linux tmpfs 限制提供了具体的解决方案。它消耗来自 Claude Code 的原生 JSON 数据，确保指标准确而非估算。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">claude-code</span><span class="tag">ai-agents</span><span class="tag">developer-tools</span><span class="tag">observability</span><span class="tag">llm</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            开发复杂的 AI 工作流往往缺乏可观测性，导致开发者难以判断智能体变慢的原因或距离达到上下文限制还有多远。此前的解决方案需要切换到外部仪表盘或解析原始日志，这会打断编码流程。Claude HUD 通过将关键操作数据直接嵌入开发者现有的终端工作流来填补这一空白。它专门针对管理资源不透明的长时智能体任务这一痛点。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            早期用户强调该插件对于调试复杂智能体循环至关重要，尽管有人指出 Linux 上的初始设置需要仔细配置环境变量。社区赞赏其从估算数据转向原生令牌数据，从而提高了可靠性。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-4">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/gsd-build/get-shit-done" target="_blank" rel="noopener">GSD：防止大模型上下文退化的规范驱动框架</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - Daily · 2026-03-20 01:31</div>
+          
+          <div class="item-summary">Get Shit Done (GSD) 推出了一种专为 Claude Code 和 Copilot 等编码代理设计的轻量级元提示与上下文工程系统。它实施了一种规范驱动的开发工作流，主动管理代理的上下文窗口，以防止被称为“上下文退化”的性能下降问题。该工具现已通过 npm 发布，支持 Mac、Windows 和 Linux 上的多个主流 AI 编码平台。 随着 AI 编码代理会话时间的延长，它们会遭受“上下文退化”的困扰，即上下文窗口中无关信息的积累导致代码质量和推理能力急剧下降。GSD 通过强制执行一种结构化的、规范优先的方法来解决这一关键瓶颈，使模型专注于即时目标，而不是淹没在对话历史中。这种从被动提示到主动上下文治理的转变，使得工程师能够在复杂的多步开发任务中保持高保真的输出。通过解决这一可扩展性问题，该框架使自主代理在生产级工程工作中更加可靠。 该框架作为一个 CLI 工具运行，拦截代理交互以注入元提示，并强制严格遵守用户定义的规范。据称，通过减少过度工程化并纯粹关注执行效率，其表现优于 SpecKit 和 Taskmaster 等现有方法。早期采用报告表明，在与 Claude Code 及类似代理配合使用时，输出的一致性有显著提高。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">ai-agents</span><span class="tag">prompt-engineering</span><span class="tag">developer-tools</span><span class="tag">llm</span><span class="tag">context-management</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            上下文退化是一个有据可查的现象，即当大型语言模型的输入上下文中充满干扰因素或过时的对话轮次时，其连贯性和准确性会丧失。虽然之前的解决方案通常依赖于手动提示调整或外部摘要工具，但 GSD 将上下文管理直接集成到代理的操作循环中。该项目填补了一个市场空白，为开发者提供了一种标准化、自动化的方法来保持代理的专注度，而无需不断重置会话或手动整理上下文窗口。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            来自大型科技公司工程师的初步用户反馈将该工具描述为“强大”且“不过度工程化”，并指出其结果优于竞争的规范驱动框架。然而，一些观察家指出，相对于新兴的上下文管理行业标准，其长期新颖性仍需进一步验证。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-5">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/TauricResearch/TradingAgents" target="_blank" rel="noopener">TradingAgents：用于协作金融的多智能体大语言模型框架</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - Python · 2026-03-20 01:38</div>
+          
+          <div class="item-summary">TradingAgents 已正式开源其多智能体框架，旨在利用专用 AI 角色模拟专业交易公司。最新的 v0.2.1 版本扩展了对 GPT-5.4、Gemini 3.1 和 Claude 4.6 的支持，同时提高了系统稳定性。此次发布伴随着一篇支持性的 arXiv 论文，并引入了一个用于智能体辩论和协作的结构化环境。 该项目通过将任务分配给专用智能体，而不是依赖单一的单体模型，解决了金融决策的复杂性问题。通过模拟基本面分析师、情绪追踪者和风险经理等角色，它模仿了人类交易台的协作尽职调查过程。这种架构使研究人员能够研究智能体间的沟通和辩论如何影响交易性能和风险缓解。它为开发能在波动市场条件下稳健运行的自主智能体提供了关键的测试平台。 该框架协调了包括研究员、交易员和风险经理在内的不同智能体，它们通过结构化的辩论进行互动以最终确定交易策略。它支持多个大语言模型提供商，并包含在模拟环境中进行回测和性能分析的功能。系统设计为可扩展的，允许开发人员定义自定义的智能体角色和交互协议。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">llm</span><span class="tag">multi-agent-systems</span><span class="tag">fintech</span><span class="tag">trading</span><span class="tag">autonomous-agents</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            传统的算法交易通常依赖于基于规则的僵化系统或缺乏细微上下文理解的单模型预测。虽然存在像 MetaGPT 这样的通用多智能体框架，但它们通常针对软件开发而非金融市场的高风险和实时性质进行优化。TradingAgents 通过提供专为金融科技独特的数据流和风险状况定制的领域特定架构来填补这一空白。它建立在最新的研究基础之上，表明协作智能体架构在复杂推理任务中可以优于单一模型。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            社区对该框架通过智能体辩论模拟真实交易动态的能力表现出了浓厚的兴趣。用户正在积极探讨不同的模型组合如何影响共识机制和最终的贸易执行信号。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-6">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/MiroMindAI/MiroThinker" target="_blank" rel="noopener">MiroThinker：高性能深度研究智能体框架</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - Python · 2026-03-20 01:38</div>
+          
+          <div class="item-summary">MiroMindAI 发布了 MiroThinker-1.7 和 MiroThinker-H1 模型，在高难度的 BrowseComp 基准测试中分别取得了 74.0 和 88.2 的最先进成绩。该项目还推出了 MiroVerse-v0.1，这是一个包含超过 14.7 万个智能体轨迹及完整执行记录的大规模训练数据集。 该框架解决了当前对能够持久浏览网络以查找纠缠难证信息的智能体的迫切需求，而不仅仅是回答常见查询。通过开源高性能模型及其底层轨迹数据，它显著降低了工程师构建和微调自有深度研究智能体的门槛。其经过验证的基准测试性能为评估复杂预测任务中的智能体工作流提供了可靠的基线。 该框架包含专为工具增强推理优化的模型，支持 256K 上下文窗口及原生网页导航能力。MiroThinker-H1 目前在 BrowseComp 排行榜上领先于所有开源和商业模型，展现了卓越的信息收集持久性。配套的 MiroVerse 数据集提供了超过 19 亿 token 的交互数据，涵盖多跳问答和科学推理等任务。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">ai-agents</span><span class="tag">deep-research</span><span class="tag">llm</span><span class="tag">benchmarking</span><span class="tag">python</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            在此次发布之前，许多浏览智能体在需要深度网页导航和验证晦涩事实的多步推理任务中表现不佳。现有的基准测试往往缺乏足够的复杂性，无法区分简单的检索与真正的智能体持久性。MiroThinker 通过提供专为重型研究和预测工作流设计的专用架构和数据集，填补了这一空白。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            早期采用者强调了 MiroVerse 数据集在训练定制智能体方面的实用性，并指出开源社区中如此全面的轨迹数据十分罕见。其极高的 BrowseComp 得分引发了关于开源模型是否能在深度研究任务中替代专有解决方案的讨论。
+          </div>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    <div class="sub-topic-section">
+      <h3 class="sub-topic-title">研发工具与设施 <span class="sub-topic-count">5</span></h3>
+      <div class="columns-flow">
+        
+        <div class="col-card" id="sec-3-st0-1">
+          <div class="item-header">
+            
+            <span class="score-badge score-high">
+              9.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/microsoft/qlib" target="_blank" rel="noopener">微软 Qlib 集成 RD-Agent 实现量化研发自动化</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - Python · 2026-03-20 01:38</div>
+          
+          <div class="item-summary">微软发布了用于 Qlib 的新模块 RD-Agent，利用基于大语言模型的自主智能体来自动化因子挖掘和模型优化。该更新引入了一个多智能体框架，能够在无需人工持续干预的情况下联合优化以数据为中心的因子和交易模型。 这一集成通过自动化重复的研究任务，显著减少了量化策略开发迭代过程中所需的人工工作量。它通过启用持续的自我改进工作流，弥合了理论 AI 研究与生产就绪策略之间的差距。对于 AI 工程师而言，这标志着从构建静态模型向部署能够适应市场动态的演进型智能体的转变。 除了新的自主研发能力外，Qlib 现在支持多种机器学习范式，包括监督学习、市场动态建模和强化学习。该平台提供了从数据处理、模型训练到回测和分析的全栈解决方案，并因 RD-Agent 的知识积累功能而得到增强。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">quantitative-finance</span><span class="tag">machine-learning</span><span class="tag">ai-infrastructure</span><span class="tag">fintech</span><span class="tag">microsoft</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            传统量化投资依赖于劳动密集型的假设检验和手工特征工程，这限制了创新速度。Qlib 作为面向 AI 的基础设施被创建出来，旨在简化这一工作流，为金融领域的机器学习实施提供标准化环境。虽然之前的版本在执行模型方面表现出色，但 RD-Agent 的加入解决了创意生成和参数调优的瓶颈问题。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            社区认为此次更新是迈向完全自动化量化研究的重要一步，尽管也有人指出它主要仍是一个研究工具而非实时交易引擎。用户特别感兴趣的是将 RD-Agent 的性能与传统的手工因子发现方法进行基准测试。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-2">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/newton-physics/newton" target="_blank" rel="noopener">Newton：基于 NVIDIA Warp 的机器人 GPU 加速物理引擎</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - Daily · 2026-03-20 01:31</div>
+          
+          <div class="item-summary">Newton 是一款全新的开源物理仿真引擎，基于 NVIDIA Warp 构建，旨在替代已弃用的 warp.sim 模块。它将 MuJoCo Warp 集成作为主要后端，同时增加了原生 OpenUSD 支持和可微分仿真功能。该项目由迪士尼研究院、Google DeepMind 和 NVIDIA 联合发起，旨在解决可扩展的机器人训练需求。 该引擎直接解决了现代机器人和 AI 训练流程中基于 CPU 的仿真速度慢这一关键瓶颈。通过利用完全的 GPU 加速，Newton 实现了环境展开的大规模并行化，与传统引擎相比可能将机器人学习速度提高数个数量级。其可微分特性支持基于梯度的控制策略和物理参数优化，这对于高级强化学习至关重要。此外，作为 Linux 基金会项目，它确保了长期的社区维护，避免了对单一供应商的依赖。 Newton 需要 Python 3.10+ 和 NVIDIA GPU（Maxwell 或更新版本）及 545+ 驱动程序，但也支持在 macOS 上仅使用 CPU 运行。它通过用户定义函数的即时编译（JIT）成高效内核代码，实现与现有 Python 工作流的无缝集成。该引擎强调可扩展性，允许研究人员直接用 Python 定义自定义接触模型和求解器。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">physics-simulation</span><span class="tag">robotics</span><span class="tag">gpu-computing</span><span class="tag">nvidia-warp</span><span class="tag">ai-infrastructure</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            在 Newton 出现之前，机器人研究人员通常依赖分散的工具，如独立的 MuJoCo 或 NVIDIA Warp 中现已弃用的 warp.sim 模块。这些解决方案要么缺乏原生 GPU 可扩展性，要么需要复杂的桥接才能有效利用现代硬件加速器。Newton 通过将 Warp 的仿真能力泛化为专用的高性能引擎，填补了这一空白，统一了可微分物理与 OpenUSD 等行业标准资产格式。这一演变标志着从通用计算框架向专为模拟到现实迁移的严苛需求优化的专用基础设施的转变。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            社区分享的早期基准测试表明，与 CPU 基线相比，特定机器人训练任务的速度提升高达 475 倍。主要 AI 实验室的采用率正在增长，据报道 Skild AI 和三星等实体已在大规模仿真集群中投入生产使用。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-3">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/github/spec-kit" target="_blank" rel="noopener">GitHub Spec Kit 通过规范驱动开发遏制 AI 随意编程</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - Python · 2026-03-20 01:38</div>
+          
+          <div class="item-summary">GitHub 发布了 Spec Kit，这是一个旨在将规范驱动开发（SDD）制度化为 AI 辅助工作流的开源工具包。该工具使工程师能够在生成任何代码之前定义可执行的规范，以此作为唯一的事实来源。它通过强制执行结构化需求而非直觉提示，直接解决了日益流行的“随意编程”（vibe coding）趋势。 随着 AI 代理的普及，行业面临着“随意编程”的风险，即开发者凭直觉接受未经审查的 AI 输出，而非基于严谨的设计。Spec Kit 的重要性在于它将范式从被动调试转变为主动规范，确保软件结果的可预测性和可维护性。通过使规范可执行，它减少了幻觉现象，并严格将 AI 生成内容与定义的产品场景对齐。对于希望在牺牲代码质量或架构完整性之前扩展 AI 使用的团队而言，这种方法至关重要。 该工具包包含一个 &#39;Specify CLI&#39;，指导用户在开始实施之前定义清晰的产品场景和技术约束。它通过将形式化规范转换为直接的实施工蓝图来支持各种 AI 代理，有效地充当防止偏离的护栏。该项目强调规范不再仅仅是文档，而是现在衍生代码的主要工件。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">spec-driven-development</span><span class="tag">ai-engineering</span><span class="tag">developer-tools</span><span class="tag">github</span><span class="tag">software-architecture</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            传统的软件开发通常将规范视为一次性脚手架，导致设计意图与最终代码之间出现差异。最近大语言模型能力的激增推动了“随意编程”的流行，这是由 Andrej Karpathy 创造的一个术语，指通过松散的提示生成代码而缺乏正式规划。Spec Kit 作为一种反向运动出现，通过使机器可读的规范成为权威的事实来源，复兴了正式的工程严谨性。它填补了那些希望利用 AI 速度但需要传统架构监督可靠性的团队的空白。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            早期采用者认为这是 AI 工程必要的成熟步骤，标志着从实验性原型转向生产级可靠性。讨论突出了快速迭代与企业环境中长期可维护性所需纪律之间的张力。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-4">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              8.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/SigNoz/signoz" target="_blank" rel="noopener">SigNoz：Datadog 的开源可观测性替代方案</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - TypeScript · 2026-03-20 01:40</div>
+          
+          <div class="item-summary">SigNoz 已发展成为一个成熟的生产级平台，将日志、指标和追踪统一在一个应用中。它利用 ClickHouse 实现高性能日志存储，并提供原生的 OpenTelemetry 支持以避免厂商锁定。最近的更新强调了其有效监控复杂 AI/ML 基础设施和模型服务管道的能力。 对于 AI 工程师而言，观察分布式微服务中的模型延迟、错误率和资源利用率对维持可靠性至关重要。SigNoz 提供了比 Datadog 或 New Relic 等昂贵 SaaS 工具更具成本效益的替代方案，同时完全掌控数据隐私。其将追踪与日志关联的能力使团队能够快速排查停机时间和性能瓶颈。这使得它成为那些希望在不承担过高监控成本的情况下扩展 ML 业务的组织的必备工具。 该平台拥有基于快速 ClickHouse 后端的关键指标（如 p99 延迟和 Apdex）的开箱即用图表。它支持带有火焰图和甘特图的分布式追踪，以可视化跨服务的用户请求。用户可以轻松使用标准的 OpenTelemetry 库和代理对应用进行插桩。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">observability</span><span class="tag">opentelemetry</span><span class="tag">monitoring</span><span class="tag">devops</span><span class="tag">apm</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            现代云原生应用产生了海量的遥测数据，传统的孤立工具难以高效地关联这些数据。SigNoz 通过提供基于 OpenTelemetry 标准构建的统一可观测性套件来解决这一问题。与需要复杂代理或专有格式的旧式解决方案不同，SigNoz 简化了数据摄入和分析，同时保持完全开源。这种方法填补了那些需要企业级监控但不愿承担商业竞争对手高昂许可费用的团队的市场空白。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            开发者称赞 SigNoz 通过 Docker 和 Kubernetes 部署的简便性，并指出其相较于托管服务能显著节省成本。社区正积极贡献于扩展各种 AI 框架和数据库连接器的集成。
+          </div>
+          
+        </div>
+        
+        <div class="col-card" id="sec-3-st0-5">
+          <div class="item-header">
+            
+            <span class="score-badge score-mid">
+              7.0
+            </span>
+            
+            <div class="item-title">
+              <a href="https://github.com/opendataloader-project/opendataloader-pdf" target="_blank" rel="noopener">OpenDataLoader PDF：面向 RAG 的高精度多语言解析器</a>
+            </div>
+          </div>
+          <div class="item-meta">rss · GitHub Trending - Daily · 2026-03-20 01:31</div>
+          
+          <div class="item-summary">OpenDataLoader PDF 是一款全新的开源库，旨在将复杂的 PDF 文档转换为适用于 AI 的 Markdown、JSON 和 HTML 格式。它引入了一种混合模式，结合确定性布局分析与 AI 技术，以处理跨越 80 多种语言的表格、公式及扫描文档。该项目在表格准确性基准测试中宣称得分最高，并计划于 2026 年发布端到端的 PDF 自动标签功能。 该工具解决了 RAG 管道中的关键瓶颈，即标准解析器无法保留表格和多栏布局等结构上下文的问题。通过提供 Python、Node.js 和 Java 的原生 SDK，相较于仅限 API 的解决方案，它降低了不同工程技术栈的集成门槛。其对无障碍自动化的关注也使其成为需要标签化 PDF 的合规驱动型行业的未来适用方案。然而，工程师在从 LlamaParse 等成熟工具迁移之前，应针对特定领域数据验证其宣称的 0.90 准确率。 该库支持输出用于分块的结构化 Markdown、带边界框用于来源引用的 JSON 以及 HTML 格式。它具有内置的 OCR 功能，可处理 300 DPI 以上的低质量扫描件，并通过其混合 AI 模式处理无边框表格和 LaTeX 公式。用户可以通过 PyPI、npm 和 Maven Central 进行安装，并立即获得 LangChain 集成支持。</div>
+          
+          
+          <div class="item-tags">
+            <span class="tag">pdf-parser</span><span class="tag">data-engineering</span><span class="tag">rag</span><span class="tag">ai-infrastructure</span><span class="tag">open-source</span>
+          </div>
+          
+          
+          <div class="item-bg">
+            <div class="label">背景知识</div>
+            由于 PDF 格式具有僵化的视觉结构，在文本提取过程中容易破坏布局，因此 PDF 解析一直是 AI 工程中的一大挑战。现有的开源工具往往难以处理科学公式或嵌套表格等复杂元素，而商业 API 在大规模应用时成本可能过高。OpenDataLoader 试图通过提供一种高精度、可自托管的替代方案来填补这一空白，该方案平衡了基于规则的可靠性与生成式 AI 的能力。它专门针对构建稳健的检索增强生成（RAG）系统所需的精确数据提取需求。
+          </div>
+          
+          
+          <div class="item-disc">
+            <div class="label">社区讨论</div>
+            作为一个新近流行的仓库，目前关于其长期稳定性或实际生产案例的公开讨论有限。建议工程师在完全投入该生态系统之前，密切关注预计于 2026 年第二季度发布的承诺无障碍标签功能。
+          </div>
+          
+        </div>
+        
+      </div>
+    </div>
+    
+    
+
+    <footer>Horizon — AI-Driven Information Aggregation</footer>
+  </div>
+  
+
+</div>
+
+<!-- ── Page Indicators ── -->
+<div class="page-indicator" id="pageIndicator">
+  <button class="page-dot active" data-page="0" onclick="goPage(0)" title="头版"></button>
+  
+  <button class="page-dot" data-page="1" onclick="goPage(1)" title="头条速递"></button>
+  
+  <button class="page-dot" data-page="2" onclick="goPage(2)" title="关注动态"></button>
+  
+  <button class="page-dot" data-page="3" onclick="goPage(3)" title="GitHub 热榜"></button>
+  
+</div>
+<div class="page-nav-hint">← → 翻页</div>
+
+<script>
+var currentPage = 0;
+var totalPages = document.querySelectorAll('.page').length;
+
+function goPage(idx) {
+  if (idx < 0 || idx >= totalPages) return;
+  currentPage = idx;
+
+  document.querySelectorAll('.page').forEach(function(p, i) {
+    p.classList.toggle('active', i === idx);
+    if (i === idx) p.scrollTop = 0;
+  });
+
+  document.querySelectorAll('.page-dot').forEach(function(d) {
+    d.classList.toggle('active', parseInt(d.dataset.page) === idx);
+  });
+
+  document.querySelectorAll('.nav-page-btn').forEach(function(b) {
+    b.classList.toggle('active', parseInt(b.dataset.page) === idx);
+  });
+}
+
+function scrollToCard(id) {
+  setTimeout(function() {
+    var el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+/* Sidebar resize */
+(function() {
+  var handle = document.getElementById('resizeHandle');
+  var root = document.documentElement;
+  var dragging = false;
+  handle.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    dragging = true;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    var w = Math.max(200, Math.min(e.clientX, 600));
+    root.style.setProperty('--sidebar-w', w + 'px');
+  });
+  document.addEventListener('mouseup', function() {
+    if (dragging) {
+      dragging = false;
+      handle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    }
+  });
+})();
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    e.preventDefault();
+    goPage(currentPage + 1);
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    goPage(currentPage - 1);
+  }
+});
+</script>
+</body>
+</html>
