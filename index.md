@@ -16,11 +16,12 @@ Welcome to [Horizon](https://github.com/Ming-321/horizon), an AI-driven informat
 ## Daily Reports
 
 <ul>
-  {% assign report_files = site.static_files | where_exp: "file", "file.path contains '/reports/horizon-'" | sort: "path" | reverse %}
-  {% for report in report_files limit:20 %}
-    {% assign d = report.path | split: '/' | last | remove: 'horizon-' | remove: '.html' %}
+  {% assign zh_posts = site.posts | where: "lang", "zh" %}
+  {% for post in zh_posts limit:20 %}
+    {% assign d = post.date | date: "%Y-%m-%d" %}
     <li>
-      <a href="{{ report.path | relative_url }}">{{ d }}</a>
+      <a href="{{ '/reports/horizon-' | append: d | append: '.html' | relative_url }}">{{ d }}</a>
+      · <a href="{{ post.url | relative_url }}" style="font-size:0.85em; opacity:0.7">Markdown</a>
     </li>
   {% else %}
     <li><em>No reports yet</em></li>
