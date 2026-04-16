@@ -7,6 +7,13 @@
     <language>zh-cn</language>
     <generator>Horizon Podcast Pipeline</generator>
     <item>
+      <title>Horizon 科技日报 - 2026-04-17</title>
+      <description>2026-04-17 每日科技新闻播客</description>
+      <enclosure url="https://github.com/Ming-321/horizon/releases/download/podcast-2026-04-17/horizon-2026-04-17.mp3" length="10161035" type="audio/mpeg" />
+      <guid>https://github.com/Ming-321/horizon/releases/download/podcast-2026-04-17/horizon-2026-04-17.mp3</guid>
+      <pubDate>Fri, 17 Apr 2026 07:00:00 +0800</pubDate>
+    </item>
+    <item>
       <title>Horizon 科技日报 - 2026-04-16</title>
       <description>2026-04-16 每日科技新闻播客</description>
       <enclosure url="https://github.com/Ming-321/horizon/releases/download/podcast-2026-04-16/horizon-2026-04-16.mp3" length="12371205" type="audio/mpeg" />
